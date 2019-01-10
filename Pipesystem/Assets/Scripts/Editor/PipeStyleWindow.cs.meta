@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 0997df3da57cfe74fb007a7d79ccb77a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_PersistentViewDataDictionary: {instanceID: 0}
+  - usedStyle: {instanceID: 0}
+  - pipesystemObject: {instanceID: 0}
+  - pipesystem: {instanceID: 0}
+  - emptyPlaceholder: {fileID: 1434226496925916, guid: bb25747a362cb1f449478c4f7058a297,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

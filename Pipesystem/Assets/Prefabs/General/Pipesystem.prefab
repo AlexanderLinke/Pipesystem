@@ -1,0 +1,139 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &100100000
+Prefab:
+  m_ObjectHideFlags: 1
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications: []
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 0}
+  m_RootGameObject: {fileID: 1169671550984766}
+  m_IsPrefabAsset: 1
+--- !u!1 &1169671550984766
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4283136634266966}
+  - component: {fileID: 114268545136494966}
+  m_Layer: 0
+  m_Name: Pipesystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &1183635972794254
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4941343813463786}
+  m_Layer: 0
+  m_Name: PipePoints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &1749941382340372
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4604286071214558}
+  m_Layer: 0
+  m_Name: PipeLines
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4283136634266966
+Transform:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1169671550984766}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 4941343813463786}
+  - {fileID: 4604286071214558}
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4604286071214558
+Transform:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1749941382340372}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4283136634266966}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4941343813463786
+Transform:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1183635972794254}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4283136634266966}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &114268545136494966
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1169671550984766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ac691e709acded44baf63859caf98bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pipePoints: []
+  pipeStyle: {fileID: 11400000, guid: a1d84c6afb6e61d428e3f813a596c762, type: 2}
+  pipePointHolder: {fileID: 1183635972794254}
+  pipeLinelHolder: {fileID: 1749941382340372}
+  segmentLength: 4
+  isLinked: 0
+  prefabPipePoint: {fileID: 114725476273561490, guid: 97d79d3858524e447ac98ecedacf65b4,
+    type: 2}
+  prefabPipeLine: {fileID: 114044136960216230, guid: 249558bae8d563b49b4141f9b1797a7a,
+    type: 2}
+  segmentPrefab:
+  - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
+  - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
+  segmentProbability: 5000000014000000
+  interjacentPrefab:
+  - {fileID: 1486190417364310, guid: 8586a2c2e2797f646a85715e968e07b6, type: 2}
+  interjacentProbability: 64000000
+  gizmoColors:
+  - serializedVersion: 2
+    rgba: 4278255615
+  - serializedVersion: 2
+    rgba: 1677787135
+  - serializedVersion: 2
+    rgba: 4278255360
+  - serializedVersion: 2
+    rgba: 1677786880
+  - serializedVersion: 2
+    rgba: 4278255615

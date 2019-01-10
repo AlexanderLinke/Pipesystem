@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ae9f07cfda8d69a4fa28e1d6f5f89e1a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_PersistentViewDataDictionary: {instanceID: 0}
+  - prefabPipeSystem: {fileID: 1169671550984766, guid: 967914918b3d50b40bc862987a5fbc7d,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
