@@ -143,8 +143,9 @@ public class PipeStyleWindow : EditorWindow
             }
 
             oldInterjacentProbability = new List<int>();
-            foreach(int i in usedStyle.interjacentProbability)
+            for(int i =0; i < usedStyle.interjacentProbability.Count; i++)
             {
+                Debug.Log(i);
                 int temp = usedStyle.interjacentProbability[i];
                 oldInterjacentProbability.Add(temp);
             }
@@ -164,11 +165,17 @@ public class PipeStyleWindow : EditorWindow
 
         //Segment Length
         GUILayout.BeginHorizontal();
-
         GUILayout.Label("Segment Length");
         pipesystem.segmentLength = EditorGUILayout.FloatField(pipesystem.segmentLength);
-
         GUILayout.EndHorizontal();
+
+        //Segment Diameter
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Segment Diameter");
+        pipesystem.segmentDiameter = EditorGUILayout.FloatField(pipesystem.segmentDiameter);
+        GUILayout.EndHorizontal();
+        GUILayout.Space(10);
+
 
         //Spare segment probability
         GUILayout.Label("Spare Segment Probabilty: " + spareSegmentProbability.ToString());
@@ -425,9 +432,13 @@ public class PipeStyleWindow : EditorWindow
         GameObject tempGo;
         int tempInt = 0;
         Color32 tempColor = Color.red;
+        float tempFloat;
 
-        float tempFloat = pipesystem.segmentLength;
+        tempFloat = pipesystem.segmentLength;
         style.segmentLength = tempFloat;
+
+        tempFloat = pipesystem.segmentDiameter;
+        style.segmentDiameter = tempFloat;
 
 
         //fill segment count if to low
@@ -500,6 +511,7 @@ public class PipeStyleWindow : EditorWindow
         Color32 tempColor;
 
         pipesystem.segmentLength = usedStyle.segmentLength;
+        pipesystem.segmentDiameter = usedStyle.segmentDiameter;
 
         //fill segment count if to low
         while (pipesystem.segmentPrefab.Count < usedStyle.segmentPrefab.Count)
@@ -595,6 +607,11 @@ public class PipeStyleWindow : EditorWindow
         GUILayout.BeginHorizontal();
         GUILayout.Label("Connection Line");
         pipesystem.gizmoColors[4] = EditorGUILayout.ColorField(pipesystem.gizmoColors[4], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Segment Hover");
+        pipesystem.gizmoColors[5] = EditorGUILayout.ColorField(pipesystem.gizmoColors[5], GUILayout.Width(colorfieldWidth));
         GUILayout.EndHorizontal();
 
         GUILayout.EndVertical();

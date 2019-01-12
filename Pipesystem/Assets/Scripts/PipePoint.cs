@@ -16,7 +16,7 @@ public class PipePoint : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        if (correspondingPipesystem.isLinked)
+        if (correspondingPipesystem.isLinked && correspondingPipesystem.isSelectablePipePoints)
         {
             if (!isSelectedPipePoint)
             {

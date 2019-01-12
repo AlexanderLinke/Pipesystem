@@ -16,12 +16,18 @@ public class PipesystemWindow : EditorWindow {
 
     private GameObject pipeSystemObject;
 
-    private Pipesystem pipeSystemScript;
+    private Pipesystem pipesystem;
 
+    //selection
     private bool mousePressed;
     private bool shiftPressed;
 
+    private bool segmentSelection;
+    private PipeSegment currentHoverd;
+    private bool otherSelection;
+
     private bool forcePipeUpdate;
+
 
 
     [MenuItem("Window/PipeSystem")]
@@ -32,7 +38,7 @@ public class PipesystemWindow : EditorWindow {
 
     void OnGUI()
     {
-        if (pipeSystemScript == null || pipeSystemObject == null)
+        if (pipesystem == null || pipeSystemObject == null)
             pipeSystemLinked = false;
 
         if (pipeSystemLinked)
@@ -40,11 +46,28 @@ public class PipesystemWindow : EditorWindow {
             if (GUILayout.Button("New"))
                 CreatePipePoint();
 
+
+            GUILayout.BeginHorizontal();
+
             if (GUILayout.Button("Delete Selected"))
                 DeletePipePoint();
 
             if (GUILayout.Button("Delete All"))
                 DeleteAllPipePoints();
+
+            GUILayout.EndHorizontal();
+
+            //Selection
+            GUILayout.Label("Selection");
+
+            GUILayout.BeginHorizontal();
+
+            segmentSelection = GUILayout.Toggle(segmentSelection, "Segments");
+            pipesystem.isSelectablePipePoints = GUILayout.Toggle(pipesystem.isSelectablePipePoints, "Pipe Points");
+            otherSelection = GUILayout.Toggle(otherSelection, "Other");
+
+            GUILayout.EndHorizontal();
+
 
             if (GUILayout.Button("Unlink Pipesystem"))
             {
@@ -67,24 +90,29 @@ public class PipesystemWindow : EditorWindow {
 
     void Update()
     {
-        if (pipeSystemLinked)
-            CheckSelection();
         UpdatePipes();
     }
 
     public void OnEnable()
     {
         SceneView.onSceneGUIDelegate += ShortcutUpdate;
+        SceneView.onSceneGUIDelegate += CheckSelection;
+        SceneView.onSceneGUIDelegate += ChangeSegment;
+
     }
 
     public void OnDisable()
     {
         SceneView.onSceneGUIDelegate -= ShortcutUpdate;
+        SceneView.onSceneGUIDelegate -= CheckSelection;
+        SceneView.onSceneGUIDelegate -= ChangeSegment;
+
     }
 
     void ShortcutUpdate(SceneView sceneview)
     {
         Event e = Event.current;
+
         if (e.type == EventType.MouseDown)
             mousePressed = true;
 
@@ -103,6 +131,74 @@ public class PipesystemWindow : EditorWindow {
         {
             if (!mousePressed)
                 DeletePipePoint();
+        }
+    }
+
+    public void CheckSelection(SceneView sceneView)
+    {
+        //PipePoint selection
+        if(pipesystem.isSelectablePipePoints)
+        {
+            GameObject selectedObject = Selection.activeGameObject;
+            PipePoint pipePoint = null;
+
+            if (selectedObject != null)
+                pipePoint = selectedObject.GetComponent<PipePoint>();
+            else
+                selectedPipePoint.Clear();
+
+            if (pipePoint != null)
+            {
+                if (!selectedPipePoint.Contains(pipePoint))
+                {
+                    selectedPipePoint.Add(pipePoint);
+                    pipePoint.isSelectedPipePoint = true;
+                }
+            }
+            else
+                selectedPipePoint.Clear();
+
+            foreach (PipePoint pipePointi in pipesystem.pipePoints)
+            {
+                if (!selectedPipePoint.Contains(pipePointi))
+                    pipePointi.isSelectedPipePoint = false;
+            }
+        }
+
+        Event e = Event.current;
+
+        //Segment selection
+        if(segmentSelection)
+        {
+            Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+            RaycastHit hit = new RaycastHit();
+
+            if (Physics.Raycast(ray, out hit, 1000.0f))
+            {
+                Debug.Log("hit");
+                PipeSegment segment = hit.collider.GetComponent<PipeSegment>();
+                Debug.Log("hot");
+
+                if (segment != null && segment != currentHoverd)
+                {
+                    Debug.Log("hut");
+
+                    segment.isHoverd = true;
+
+                    if(currentHoverd != null)
+                    {
+                        currentHoverd.isHoverd = false;
+                    }
+
+                    currentHoverd = segment;
+                }
+            }
+            else
+            {
+                if (currentHoverd != null)
+                    currentHoverd.isHoverd = false;
+                currentHoverd = null;
+            }
         }
     }
 
@@ -126,13 +222,27 @@ public class PipesystemWindow : EditorWindow {
             return;
         }
 
-        pipeSystemScript = selectedObject.GetComponent<Pipesystem>();
+        pipesystem = selectedObject.GetComponent<Pipesystem>();
         pipeSystemObject = selectedObject;
 
-        if (!(pipeSystemScript == null || pipeSystemObject == null))
+        if (!(pipesystem == null || pipeSystemObject == null))
         {
             pipeSystemLinked = true;
-            pipeSystemScript.isLinked = true;
+            pipesystem.isLinked = true;
+
+            //bugfix where after restart the pipepoints list was empty although there were pippoints 
+            int pipePointCount = pipesystem.pipePointHolder.transform.childCount;
+
+            if( pipePointCount != 0 && pipesystem.pipePoints.Count==0 )
+            {
+                for(int i = 0; i < pipePointCount; i++)
+                {
+                    pipesystem.pipePoints.Add(pipesystem.pipePointHolder.transform.GetChild(i).gameObject.GetComponent<PipePoint>());
+                }
+
+                RenamePipePoints();
+                forcePipeUpdate = true;
+            }
         }
         else
             Debug.Log("This Object has no Pipesystem attached");
@@ -140,8 +250,8 @@ public class PipesystemWindow : EditorWindow {
 
     public void UnlinkPipeSystem()
     {
-        pipeSystemScript.isLinked = false;
-        pipeSystemScript = null;
+        pipesystem.isLinked = false;
+        pipesystem = null;
         pipeSystemObject = null;
         pipeSystemLinked = false;
 
@@ -158,13 +268,13 @@ public class PipesystemWindow : EditorWindow {
 
         Debug.Log(selectedPipePoint.Count);
 
-        if (pipeSystemScript.pipePoints.Count == 0)
+        if (pipesystem.pipePoints.Count == 0)
         {
             spawnPosition = pipeSystemObject.transform.position;
 
-            newPipePoint = Instantiate(pipeSystemScript.prefabPipePoint, spawnPosition, Quaternion.identity, pipeSystemScript.pipePointHolder.transform) as PipePoint;
-            pipeSystemScript.pipePoints.Add(newPipePoint);
-            newPipePoint.correspondingPipesystem = pipeSystemScript;
+            newPipePoint = Instantiate(pipesystem.prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+            pipesystem.pipePoints.Add(newPipePoint);
+            newPipePoint.correspondingPipesystem = pipesystem;
             newPipePoint.oldPosition = spawnPosition;
 
             Selection.activeObject = newPipePoint;
@@ -184,9 +294,9 @@ public class PipesystemWindow : EditorWindow {
             {
                 spawnPosition = pipePoint.transform.position;
 
-                newPipePoint = Instantiate(pipeSystemScript.prefabPipePoint, spawnPosition, Quaternion.identity, pipeSystemScript.pipePointHolder.transform) as PipePoint;
-                pipeSystemScript.pipePoints.Add(newPipePoint);
-                newPipePoint.correspondingPipesystem = pipeSystemScript;
+                newPipePoint = Instantiate(pipesystem.prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+                pipesystem.pipePoints.Add(newPipePoint);
+                newPipePoint.correspondingPipesystem = pipesystem;
                 newPipePoint.oldPosition = spawnPosition;
 
                 newPipePoint.connectedPipePoints.Add(pipePoint);
@@ -211,12 +321,9 @@ public class PipesystemWindow : EditorWindow {
 
     public void RenamePipePoints()
     {
-        if (pipeSystemScript.pipePoints.Count > 0)
+        for (int i = 1; i <= pipesystem.pipePoints.Count; i++)
         {
-            for (int i = 1; i <= pipeSystemScript.pipePoints.Count; i++)
-            {
-                pipeSystemScript.pipePoints[i - 1].name = "PipePoint " + i;
-            }
+            pipesystem.pipePoints[i - 1].name = "PipePoint " + i;
         }
     }
 
@@ -224,7 +331,7 @@ public class PipesystemWindow : EditorWindow {
     {
         RemoveMissingObjectsFromList();
 
-        foreach (PipePoint pipePoint in pipeSystemScript.pipePoints)
+        foreach (PipePoint pipePoint in pipesystem.pipePoints)
         {
             selectedPipePoint.Add(pipePoint);
         }
@@ -234,40 +341,12 @@ public class PipesystemWindow : EditorWindow {
 
     public void RemoveMissingObjectsFromList()
     {
-        for (int i = pipeSystemScript.pipePoints.Count - 1; i >= 0; i--)
+        for (int i = pipesystem.pipePoints.Count - 1; i >= 0; i--)
         {
-            if (pipeSystemScript.pipePoints[i] == null)
-                pipeSystemScript.pipePoints.RemoveAt(i);
+            if (pipesystem.pipePoints[i] == null)
+                pipesystem.pipePoints.RemoveAt(i);
         }
         RenamePipePoints();
-    }
-
-    public void CheckSelection()
-    {
-        GameObject selectedObject = Selection.activeGameObject;
-        PipePoint pipePoint = null;
-
-        if (selectedObject != null)
-            pipePoint = selectedObject.GetComponent<PipePoint>();
-        else
-            selectedPipePoint.Clear();
-
-        if (pipePoint != null)
-        {
-            if (!selectedPipePoint.Contains(pipePoint))
-            {
-                selectedPipePoint.Add(pipePoint);
-                pipePoint.isSelectedPipePoint = true;
-            }
-        }
-        else
-            selectedPipePoint.Clear();
-
-        foreach (PipePoint pipePointi in pipeSystemScript.pipePoints)
-        {
-            if (!selectedPipePoint.Contains(pipePointi))
-                pipePointi.isSelectedPipePoint = false;
-        }
     }
 
     public void DeletePipePoint()
@@ -331,7 +410,7 @@ public class PipesystemWindow : EditorWindow {
 
     public void DeletePipeLine(PipeLine pipeLine)
     {
-        foreach (GameObject segment in pipeLine.segments)
+        foreach (PipeSegment segment in pipeLine.segments)
             DestroyImmediate(segment);
 
         foreach (GameObject interjacent in pipeLine.interjacents)
@@ -354,7 +433,7 @@ public class PipesystemWindow : EditorWindow {
         if (GUILayout.Button("Manage Pipestyle"))
         {
             PipeStyleWindow pipeStyle = GetWindow<PipeStyleWindow>("Pipe Style");
-            pipeStyle.usedStyle = pipeSystemScript.pipeStyle;
+            pipeStyle.usedStyle = pipesystem.pipeStyle;
             pipeStyle.pipesystemObject = pipeSystemObject;
         }
     }
@@ -362,7 +441,7 @@ public class PipesystemWindow : EditorWindow {
     public void CreatePipeLine()
     {
         //check foreach pipePoint if the connected Pipepoints already created the pipes
-        foreach (PipePoint pipePoint in pipeSystemScript.pipePoints)
+        foreach (PipePoint pipePoint in pipesystem.pipePoints)
         {
             foreach (PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
             {
@@ -370,13 +449,13 @@ public class PipesystemWindow : EditorWindow {
                 {
                     PipeLine pipeLine;
 
-                    pipeLine = Instantiate(pipeSystemScript.prefabPipeLine, pipeSystemScript.pipeLinelHolder.transform);
+                    pipeLine = Instantiate(pipesystem.prefabPipeLine, pipesystem.pipeLinelHolder.transform);
 
                     pipePoint.drawnPipePoints.Add(connectedPipePoint);
                     connectedPipePoint.drawnPipePoints.Add(pipePoint);
                     pipeLine.startPipePoint = pipePoint;
                     pipeLine.endPipePoint = connectedPipePoint;
-                    pipeLine.correspondingPipesystem = pipeSystemScript;
+                    pipeLine.correspondingPipesystem = pipesystem;
                     pipePoint.pipeLines.Add(pipeLine);
                     connectedPipePoint.pipeLines.Add(pipeLine);
                 }
@@ -405,7 +484,7 @@ public class PipesystemWindow : EditorWindow {
                     Vector3 startPosition = pipeLine.startPipePoint.transform.position;
                     Vector3 endPosition = pipeLine.endPipePoint.transform.position;
 
-                    int segmentCount = (int)(distance / pipeSystemScript.segmentLength);
+                    int segmentCount = (int)(distance / pipesystem.segmentLength);
 
                     //add new segments
                     while (pipeLine.segments.Count < segmentCount)
@@ -413,14 +492,14 @@ public class PipesystemWindow : EditorWindow {
                         int randomSegmentPrefabIndex = 0;
 
                         //if segmentPrefabs contains more then 1, get one random based on their probability
-                        if (pipeSystemScript.segmentProbability.Count > 1)
+                        if (pipesystem.segmentProbability.Count > 1)
                         {
                             int randomNumber = Random.Range(0, 100);
                             int index = 0;
 
                             while (randomNumber >= 0)
                             {
-                                randomNumber -= pipeSystemScript.segmentProbability[index];
+                                randomNumber -= pipesystem.segmentProbability[index];
 
                                 if (randomNumber < 0)
                                 {
@@ -430,10 +509,18 @@ public class PipesystemWindow : EditorWindow {
                                     index++;
                             }
                         }
+                        GameObject segmentObj = Instantiate(pipesystem.segmentPrefab[randomSegmentPrefabIndex], pipeLine.SegmentHolder.transform);
+                        PipeSegment segment = segmentObj.AddComponent<PipeSegment>();
+
+                        segment.pipesystem = pipesystem;
+                        segment.length = pipesystem.segmentLength;
+                        segment.diameter = pipesystem.segmentDiameter;
+                        segment.segmentNumber = randomSegmentPrefabIndex;
+
                         if (pipePoint == pipeLine.endPipePoint)
-                            pipeLine.segments.Add(Instantiate(pipeSystemScript.segmentPrefab[randomSegmentPrefabIndex], pipeLine.SegmentHolder.transform));
+                            pipeLine.segments.Add(segment);
                         else
-                            pipeLine.segments.Insert(0, Instantiate(pipeSystemScript.segmentPrefab[randomSegmentPrefabIndex], pipeLine.SegmentHolder.transform));
+                            pipeLine.segments.Insert(0, segment);
                     }
 
                     //remove segments
@@ -462,21 +549,21 @@ public class PipesystemWindow : EditorWindow {
 
 
                     //adjust interjacent
-                    if (pipeSystemScript.interjacentPrefab.Count > 0)
+                    if (pipesystem.interjacentPrefab.Count > 0)
                     {
                         while (pipeLine.interjacents.Count < segmentCount - 1)
                         {
                             int randomInterjacentPrefabIndex = 0;
 
                             //if interjacentPrefabs contains more then 1, get one random based on their probability
-                            if (pipeSystemScript.interjacentProbability.Count > 1)
+                            if (pipesystem.interjacentProbability.Count > 1)
                             {
                                 int randomNumber = Random.Range(0, 100);
                                 int index = 0;
 
                                 while (randomNumber >= 0)
                                 {
-                                    randomNumber -= pipeSystemScript.interjacentProbability[index];
+                                    randomNumber -= pipesystem.interjacentProbability[index];
 
                                     if (randomNumber < 0)
                                     {
@@ -488,9 +575,9 @@ public class PipesystemWindow : EditorWindow {
                                 }
                             }
                             if (pipePoint == pipeLine.endPipePoint)
-                                pipeLine.interjacents.Add(Instantiate(pipeSystemScript.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
+                                pipeLine.interjacents.Add(Instantiate(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
                             else
-                                pipeLine.interjacents.Insert(0, Instantiate(pipeSystemScript.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
+                                pipeLine.interjacents.Insert(0, Instantiate(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
                         }
 
                         //Remove Interjacents
@@ -518,6 +605,21 @@ public class PipesystemWindow : EditorWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    public void ChangeSegment(SceneView sceneView)
+    {
+        if(currentHoverd!=null)
+        {
+            Event e = Event.current;
+            int currentSegment = currentHoverd.segmentNumber;
+
+            if(e.type == EventType.ScrollWheel)
+            {
+                currentSegment++;
+
             }
         }
     }

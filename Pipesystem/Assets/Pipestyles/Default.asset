@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Name: Default
   m_EditorClassIdentifier: 
   segmentLength: 4
+  segmentDiameter: 1
   segmentPrefab:
   - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
   - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
@@ -31,3 +32,5 @@ MonoBehaviour:
     rgba: 1677786880
   - serializedVersion: 2
     rgba: 4278255615
+  - serializedVersion: 2
+    rgba: 4278255360

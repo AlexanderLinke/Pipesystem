@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PipeLine : MonoBehaviour {
 
-    public List<GameObject> segments;
+    public List<PipeSegment> segments;
     public List<GameObject> interjacents;
 
     public GameObject SegmentHolder;

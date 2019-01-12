@@ -7,6 +7,7 @@ public class PipeStyle : ScriptableObject
 {
 
     public float segmentLength;
+    public float segmentDiameter;
 
     public List<GameObject> segmentPrefab;
     public List<int> segmentProbability;
