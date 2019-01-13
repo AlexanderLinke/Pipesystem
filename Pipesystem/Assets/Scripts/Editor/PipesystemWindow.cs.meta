@@ -7,6 +7,12 @@ MonoImporter:
   - m_PersistentViewDataDictionary: {instanceID: 0}
   - prefabPipeSystem: {fileID: 1169671550984766, guid: 967914918b3d50b40bc862987a5fbc7d,
       type: 2}
+  - prefabPipePoint: {fileID: 114725476273561490, guid: 97d79d3858524e447ac98ecedacf65b4,
+      type: 2}
+  - prefabPipeLine: {fileID: 114044136960216230, guid: 249558bae8d563b49b4141f9b1797a7a,
+      type: 2}
+  - prefabSegment: {fileID: 114068969079518270, guid: a5c6097e1dd554048ad6e2c3193b7135,
+      type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

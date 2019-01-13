@@ -7,6 +7,7 @@ public class PipeSegment : MonoBehaviour {
     public float diameter;
     public float length;
     public int segmentNumber;
+    public int indexInLine;
 
     public bool isHoverd;
 

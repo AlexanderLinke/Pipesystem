@@ -14,6 +14,8 @@ public class PipePoint : MonoBehaviour {
 
     public Vector3 oldPosition;
 
+    public int indexInPipesystem;
+
     void OnDrawGizmos()
     {
         if (correspondingPipesystem.isLinked && correspondingPipesystem.isSelectablePipePoints)

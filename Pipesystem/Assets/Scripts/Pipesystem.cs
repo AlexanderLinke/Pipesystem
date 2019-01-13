@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class Pipesystem : MonoBehaviour
 {
-
     public List<PipePoint> pipePoints;
     public PipeStyle pipeStyle;
 
@@ -16,10 +15,6 @@ public class Pipesystem : MonoBehaviour
 
     public bool isLinked;
     public bool isSelectablePipePoints;
-
-    //Prefabs
-    public PipePoint prefabPipePoint;
-    public PipeLine prefabPipeLine;
 
     //Prefabs with style
     public List<GameObject> segmentPrefab;

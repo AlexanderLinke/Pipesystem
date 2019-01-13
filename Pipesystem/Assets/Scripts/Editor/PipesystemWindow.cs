@@ -11,6 +11,10 @@ public class PipesystemWindow : EditorWindow {
     private bool pipeSystemLinked;
 
     public GameObject prefabPipeSystem;
+    public PipePoint prefabPipePoint;
+    public PipeLine prefabPipeLine;
+    public PipeSegment prefabSegment;
+
 
     private List<PipePoint> selectedPipePoint = new List<PipePoint>();
 
@@ -137,7 +141,7 @@ public class PipesystemWindow : EditorWindow {
     public void CheckSelection(SceneView sceneView)
     {
         //PipePoint selection
-        if(pipesystem.isSelectablePipePoints)
+        if(pipesystem != null && pipesystem.isSelectablePipePoints)
         {
             GameObject selectedObject = Selection.activeGameObject;
             PipePoint pipePoint = null;
@@ -175,14 +179,10 @@ public class PipesystemWindow : EditorWindow {
 
             if (Physics.Raycast(ray, out hit, 1000.0f))
             {
-                Debug.Log("hit");
-                PipeSegment segment = hit.collider.GetComponent<PipeSegment>();
-                Debug.Log("hot");
+                PipeSegment segment = hit.collider.GetComponentInParent<PipeSegment>();
 
                 if (segment != null && segment != currentHoverd)
                 {
-                    Debug.Log("hut");
-
                     segment.isHoverd = true;
 
                     if(currentHoverd != null)
@@ -266,35 +266,37 @@ public class PipesystemWindow : EditorWindow {
         Vector3 spawnPosition = Vector3.zero;
         PipePoint newPipePoint;
 
-        Debug.Log(selectedPipePoint.Count);
-
+        //if there is not already a pipepoint spawn one
         if (pipesystem.pipePoints.Count == 0)
         {
             spawnPosition = pipeSystemObject.transform.position;
 
-            newPipePoint = Instantiate(pipesystem.prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+            newPipePoint = Instantiate(prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
             pipesystem.pipePoints.Add(newPipePoint);
             newPipePoint.correspondingPipesystem = pipesystem;
             newPipePoint.oldPosition = spawnPosition;
 
+            newPipePoint.indexInPipesystem = 1;
             Selection.activeObject = newPipePoint;
         }
         else if (selectedPipePoint.Count == 0)
         {
+
             Debug.Log("No PipePoint selected");
             return;
         }
         else
         {
+            //create a new pipepoint foreach selected pipepoint 
             GameObject[] newSelected = new GameObject[selectedPipePoint.Count];
 
-            int j = 0;
+            int indexOfNewSelected = 0;
 
             foreach (PipePoint pipePoint in selectedPipePoint)
             {
                 spawnPosition = pipePoint.transform.position;
 
-                newPipePoint = Instantiate(pipesystem.prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+                newPipePoint = Instantiate(prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
                 pipesystem.pipePoints.Add(newPipePoint);
                 newPipePoint.correspondingPipesystem = pipesystem;
                 newPipePoint.oldPosition = spawnPosition;
@@ -302,10 +304,14 @@ public class PipesystemWindow : EditorWindow {
                 newPipePoint.connectedPipePoints.Add(pipePoint);
                 pipePoint.connectedPipePoints.Add(newPipePoint);
 
-                newSelected[j] = newPipePoint.gameObject;
-                j++;
-            }
+                newSelected[indexOfNewSelected] = newPipePoint.gameObject;
+                indexOfNewSelected++;
 
+
+                //implement pipepoint index
+
+            }
+            //select the new pipepoints
             selectedPipePoint.Clear();
 
             foreach (GameObject pipePoint in newSelected)
@@ -324,6 +330,21 @@ public class PipesystemWindow : EditorWindow {
         for (int i = 1; i <= pipesystem.pipePoints.Count; i++)
         {
             pipesystem.pipePoints[i - 1].name = "PipePoint " + i;
+            pipesystem.pipePoints[i - 1].indexInPipesystem = i;
+        }
+
+        foreach (PipePoint pipePoint in pipesystem.pipePoints)
+        {
+            foreach (PipeLine pipeLine in pipePoint.pipeLines)
+            {
+                foreach(PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
+                {
+                    if(connectedPipePoint.pipeLines.Contains(pipeLine))
+                    {
+                        pipeLine.name = "PipeLine " + connectedPipePoint.indexInPipesystem + " - " + pipePoint.indexInPipesystem;
+                    }
+                }
+            }
         }
     }
 
@@ -449,7 +470,7 @@ public class PipesystemWindow : EditorWindow {
                 {
                     PipeLine pipeLine;
 
-                    pipeLine = Instantiate(pipesystem.prefabPipeLine, pipesystem.pipeLinelHolder.transform);
+                    pipeLine = Instantiate(prefabPipeLine, pipesystem.pipeLinelHolder.transform);
 
                     pipePoint.drawnPipePoints.Add(connectedPipePoint);
                     connectedPipePoint.drawnPipePoints.Add(pipePoint);
@@ -458,6 +479,7 @@ public class PipesystemWindow : EditorWindow {
                     pipeLine.correspondingPipesystem = pipesystem;
                     pipePoint.pipeLines.Add(pipeLine);
                     connectedPipePoint.pipeLines.Add(pipeLine);
+                    pipeLine.name = "PipeLine " + pipePoint.indexInPipesystem + " - " + connectedPipePoint.indexInPipesystem;
                 }
             }
         }
@@ -509,18 +531,25 @@ public class PipesystemWindow : EditorWindow {
                                     index++;
                             }
                         }
-                        GameObject segmentObj = Instantiate(pipesystem.segmentPrefab[randomSegmentPrefabIndex], pipeLine.SegmentHolder.transform);
-                        PipeSegment segment = segmentObj.AddComponent<PipeSegment>();
+                        PipeSegment newSegment = Instantiate(prefabSegment, pipeLine.SegmentHolder.transform);
+                        Instantiate(pipesystem.segmentPrefab[randomSegmentPrefabIndex], newSegment.transform);
 
-                        segment.pipesystem = pipesystem;
-                        segment.length = pipesystem.segmentLength;
-                        segment.diameter = pipesystem.segmentDiameter;
-                        segment.segmentNumber = randomSegmentPrefabIndex;
+                        newSegment.pipesystem = pipesystem;
+                        newSegment.length = pipesystem.segmentLength;
+                        newSegment.diameter = pipesystem.segmentDiameter;
+                        newSegment.segmentNumber = randomSegmentPrefabIndex;
 
                         if (pipePoint == pipeLine.endPipePoint)
-                            pipeLine.segments.Add(segment);
+                        {
+                            pipeLine.segments.Add(newSegment);
+                            newSegment.indexInLine = pipeLine.segments.Count;
+                        }
                         else
-                            pipeLine.segments.Insert(0, segment);
+                        {
+                            pipeLine.segments.Insert(0, newSegment);
+                            foreach (PipeSegment segment in pipeLine.segments)
+                                segment.indexInLine++;
+                        }
                     }
 
                     //remove segments
@@ -535,8 +564,14 @@ public class PipesystemWindow : EditorWindow {
                         {
                             DestroyImmediate(pipeLine.segments[0].gameObject);
                             pipeLine.segments.RemoveAt(0);
+                            foreach (PipeSegment segment in pipeLine.segments)
+                                segment.indexInLine--;
                         }
                     }
+
+                    //rename segments
+                    foreach (PipeSegment segment in pipeLine.segments)
+                        segment.name = "Segment " + segment.indexInLine;
 
                     //adjust segments position and rotation
                     for (int i = 1; i <= segmentCount; i++)
@@ -619,7 +654,12 @@ public class PipesystemWindow : EditorWindow {
             if(e.type == EventType.ScrollWheel)
             {
                 currentSegment++;
+                if (currentSegment >= pipesystem.segmentPrefab.Count)
+                    currentSegment = 0;
 
+                DestroyImmediate(currentHoverd.gameObject.transform.GetChild(0).gameObject);
+                Instantiate(pipesystem.segmentPrefab[currentSegment], currentHoverd.transform);
+                currentHoverd.segmentNumber = currentSegment;
             }
         }
     }
