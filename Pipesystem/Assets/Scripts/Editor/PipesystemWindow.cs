@@ -50,6 +50,16 @@ public class PipesystemWindow : EditorWindow {
             if (GUILayout.Button("New"))
                 CreatePipePoint();
 
+            GUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("Connect"))
+                ConnectPipePoints();
+
+            if (GUILayout.Button("Delete Connection"))
+                DeleteConnectionBetweenPipePoints();
+
+            GUILayout.EndHorizontal();
+
 
             GUILayout.BeginHorizontal();
 
@@ -230,11 +240,12 @@ public class PipesystemWindow : EditorWindow {
             pipeSystemLinked = true;
             pipesystem.isLinked = true;
 
-            //bugfix where after restart the pipepoints list was empty although there were pippoints 
+            //bugfix where after restart the pipepoints list was empty although there were pipepoints 
             int pipePointCount = pipesystem.pipePointHolder.transform.childCount;
 
-            if( pipePointCount != 0 && pipesystem.pipePoints.Count==0 )
+            if( pipePointCount != 0 && pipesystem.pipePoints == null || pipesystem.pipePoints.Count != pipePointCount)
             {
+                pipesystem.pipePoints.Clear();
                 for(int i = 0; i < pipePointCount; i++)
                 {
                     pipesystem.pipePoints.Add(pipesystem.pipePointHolder.transform.GetChild(i).gameObject.GetComponent<PipePoint>());
@@ -323,6 +334,40 @@ public class PipesystemWindow : EditorWindow {
         //Postactions
         RenamePipePoints();
         CreatePipeLine();
+    }
+
+    public void ConnectPipePoints()
+    {
+        //if two pipepoints are selecetd and not already connected
+        if(selectedPipePoint.Count == 2 && !selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
+        {
+            selectedPipePoint[0].connectedPipePoints.Add(selectedPipePoint[1]);
+            selectedPipePoint[1].connectedPipePoints.Add(selectedPipePoint[0]);
+            CreatePipeLine();
+            forcePipeUpdate = true;
+        }
+    }
+
+    public void DeleteConnectionBetweenPipePoints()
+    {
+        //if two pipepoints are selecetd and connected
+        if (selectedPipePoint.Count == 2 && selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
+        {
+            PipeLine pipeLineToDelete; 
+            foreach(PipeLine pipeLine in selectedPipePoint[0].pipeLines)
+            {
+                if(selectedPipePoint[1].pipeLines.Contains(pipeLine))
+                {
+                    pipeLineToDelete = pipeLine;
+
+                    selectedPipePoint[0].connectedPipePoints.Remove(selectedPipePoint[1]);
+                    selectedPipePoint[1].connectedPipePoints.Remove(selectedPipePoint[0]);
+                    DeletePipeLine(pipeLineToDelete);
+                    forcePipeUpdate = true;
+                    break;
+                }
+            }
+        }
     }
 
     public void RenamePipePoints()

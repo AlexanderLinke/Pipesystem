@@ -114,11 +114,9 @@ MonoBehaviour:
   pipePointHolder: {fileID: 1183635972794254}
   pipeLinelHolder: {fileID: 1749941382340372}
   segmentLength: 4
-  isLinked: 0
-  prefabPipePoint: {fileID: 114725476273561490, guid: 97d79d3858524e447ac98ecedacf65b4,
-    type: 2}
-  prefabPipeLine: {fileID: 114044136960216230, guid: 249558bae8d563b49b4141f9b1797a7a,
-    type: 2}
+  segmentDiameter: 1
+  isLinked: 1
+  isSelectablePipePoints: 1
   segmentPrefab:
   - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
   - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
@@ -135,5 +133,7 @@ MonoBehaviour:
     rgba: 4278255360
   - serializedVersion: 2
     rgba: 1677786880
+  - serializedVersion: 2
+    rgba: 4278255615
   - serializedVersion: 2
     rgba: 4278255615
