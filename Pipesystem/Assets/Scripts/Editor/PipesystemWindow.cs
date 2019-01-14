@@ -32,8 +32,6 @@ public class PipesystemWindow : EditorWindow {
 
     private bool forcePipeUpdate;
 
-
-
     [MenuItem("Window/PipeSystem")]
     public static void ShowWindow()
     {
@@ -47,9 +45,21 @@ public class PipesystemWindow : EditorWindow {
 
         if (pipeSystemLinked)
         {
+            //new and insert
+            GUILayout.BeginHorizontal();
+
             if (GUILayout.Button("New"))
                 CreatePipePoint();
 
+            if (GUILayout.Button("Insert"))
+                InsertPipePoint();
+
+            GUILayout.EndHorizontal();
+
+            if (GUILayout.Button("Merge"))
+                MergePipePoints();
+
+            //connect and deconnect
             GUILayout.BeginHorizontal();
 
             if (GUILayout.Button("Connect"))
@@ -60,7 +70,7 @@ public class PipesystemWindow : EditorWindow {
 
             GUILayout.EndHorizontal();
 
-
+            //delete
             GUILayout.BeginHorizontal();
 
             if (GUILayout.Button("Delete Selected"))
@@ -362,10 +372,119 @@ public class PipesystemWindow : EditorWindow {
 
                     selectedPipePoint[0].connectedPipePoints.Remove(selectedPipePoint[1]);
                     selectedPipePoint[1].connectedPipePoints.Remove(selectedPipePoint[0]);
+                    selectedPipePoint[1].drawnPipePoints.Remove(selectedPipePoint[0]);
+                    selectedPipePoint[0].drawnPipePoints.Remove(selectedPipePoint[1]);
+
                     DeletePipeLine(pipeLineToDelete);
                     forcePipeUpdate = true;
                     break;
                 }
+            }
+        }
+    }
+
+    public void InsertPipePoint()
+    {
+        if(selectedPipePoint.Count==2 && selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
+        {
+            PipePoint newPipePoint;
+
+            Vector3 point1 = selectedPipePoint[0].transform.position;
+            Vector3 point2 = selectedPipePoint[1].transform.position;
+
+            Vector3 spawnPosition;
+
+            spawnPosition = (point1 + point2)/2;
+
+            newPipePoint = Instantiate(prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+            pipesystem.pipePoints.Add(newPipePoint);
+            newPipePoint.correspondingPipesystem = pipesystem;
+            newPipePoint.oldPosition = spawnPosition;
+
+            //pipeline
+            foreach(PipeLine pipeLine in selectedPipePoint[0].pipeLines)
+            {
+                if(selectedPipePoint[1].pipeLines.Contains(pipeLine))
+                {
+                    DeletePipeLine(pipeLine);
+                    break;
+                }
+            }
+
+            //connection
+            selectedPipePoint[0].connectedPipePoints.Remove(selectedPipePoint[1]);
+            selectedPipePoint[1].connectedPipePoints.Remove(selectedPipePoint[0]);
+            selectedPipePoint[0].drawnPipePoints.Remove(selectedPipePoint[1]);
+            selectedPipePoint[1].drawnPipePoints.Remove(selectedPipePoint[0]);
+
+            selectedPipePoint[0].connectedPipePoints.Add(newPipePoint);
+            selectedPipePoint[1].connectedPipePoints.Add(newPipePoint);
+
+            newPipePoint.connectedPipePoints.Add(selectedPipePoint[0]);
+            newPipePoint.connectedPipePoints.Add(selectedPipePoint[1]);
+
+            RenamePipePoints();
+            CreatePipeLine();
+            forcePipeUpdate = true;
+        }
+    }
+
+    public void MergePipePoints()
+    {
+        if(selectedPipePoint.Count == 2)
+        {
+            if(selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
+            {
+                Vector3 newPosition = (selectedPipePoint[0].transform.position + selectedPipePoint[1].transform.position)/2;
+                PipePoint newPipePoint;
+
+                List<PipePoint> newConnectedPipePoints = new List<PipePoint>();
+
+                foreach (PipePoint pipePoint in selectedPipePoint)
+                {
+                    Debug.Log(pipePoint.pipeLines.Count);
+                    for(int i = 0; i <= pipePoint.pipeLines.Count; i++)
+                    {
+                        if(pipePoint.pipeLines!=null && pipePoint.pipeLines.Count>0)
+                            DeletePipeLine(pipePoint.pipeLines[0]);
+
+                    }
+                }
+
+                newPipePoint = Instantiate(prefabPipePoint, newPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+                pipesystem.pipePoints.Add(newPipePoint);
+                newPipePoint.correspondingPipesystem = pipesystem;
+                newPipePoint.oldPosition = newPosition;
+
+                foreach(PipePoint pipePoint in selectedPipePoint)
+                {
+                    foreach(PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
+                    {
+                        if(!newConnectedPipePoints.Contains(connectedPipePoint) && !selectedPipePoint.Contains(connectedPipePoint))
+                        {
+                            newConnectedPipePoints.Add(connectedPipePoint);
+                        }
+
+                        if(!selectedPipePoint.Contains(connectedPipePoint))
+                        {
+                            connectedPipePoint.connectedPipePoints.Remove(pipePoint);
+                            connectedPipePoint.drawnPipePoints.Remove(pipePoint);
+                            connectedPipePoint.connectedPipePoints.Add(newPipePoint);
+                        }
+                    }
+                }
+                newPipePoint.connectedPipePoints = newConnectedPipePoints;
+
+                foreach(PipePoint pipePoint in selectedPipePoint)
+                    pipePoint.connectedPipePoints.Clear();
+
+                DeletePipePoint();
+
+                Selection.activeGameObject = newPipePoint.gameObject;
+
+                RenamePipePoints();
+                CreatePipeLine();
+                forcePipeUpdate = true;
             }
         }
     }
@@ -490,7 +609,7 @@ public class PipesystemWindow : EditorWindow {
 
         pipeLine.startPipePoint.pipeLines.Remove(pipeLine);
         pipeLine.endPipePoint.pipeLines.Remove(pipeLine);
-        //pipeSystemScript.pipeLines.Remove(pipeLine);
+
         DestroyImmediate(pipeLine.gameObject);
     }
 
@@ -537,8 +656,6 @@ public class PipesystemWindow : EditorWindow {
         {
             if (pipePoint.oldPosition != pipePoint.transform.position || forcePipeUpdate)
             {
-                forcePipeUpdate = false;
-
                 foreach (PipeLine pipeLine in pipePoint.pipeLines)
                 {
                     //setup variables
@@ -686,6 +803,7 @@ public class PipesystemWindow : EditorWindow {
                     }
                 }
             }
+            forcePipeUpdate = false;
         }
     }
 
