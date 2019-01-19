@@ -8,13 +8,13 @@ public class Pipesystem : MonoBehaviour
     public PipeStyle pipeStyle;
 
     public GameObject pipePointHolder;
-    public GameObject pipeLinelHolder;
+    public GameObject pipeLineHolder;
 
     public float segmentLength;
     public float segmentDiameter;
 
     public bool isLinked;
-    public bool isSelectablePipePoints;
+    public bool selectControlPipePointsOnly;
 
     //Prefabs with style
     public List<GameObject> segmentPrefab;

@@ -87,8 +87,7 @@ public class PipesystemWindow : EditorWindow {
             GUILayout.BeginHorizontal();
 
             segmentSelection = GUILayout.Toggle(segmentSelection, "Segments");
-            pipesystem.isSelectablePipePoints = GUILayout.Toggle(pipesystem.isSelectablePipePoints, "Pipe Points");
-            otherSelection = GUILayout.Toggle(otherSelection, "Other");
+            pipesystem.selectControlPipePointsOnly= GUILayout.Toggle(pipesystem.selectControlPipePointsOnly, "Control Points only");
 
             GUILayout.EndHorizontal();
 
@@ -137,20 +136,30 @@ public class PipesystemWindow : EditorWindow {
     {
         Event e = Event.current;
 
+        //int controlId = GUIUtility.GetControlID(FocusType.Keyboard);
         if (e.type == EventType.MouseDown)
+        {
             mousePressed = true;
+            //Debug.Log("pressed");
+        }
+
+        if (e.isKey && e.character == 'e')
+        {
+            //if (!mousePressed)
+            //{
+            //    if (pipeSystemLinked)
+            //        CreatePipePoint();
+            //}
+            Debug.Log("e");
+        }
+        //HandleUtility.AddDefaultControl(controlId);
 
         if (e.type == EventType.MouseUp)
             mousePressed = false;
 
-        if (e.isKey && e.character == 'a')
-        {
-            if (!mousePressed)
-            {
-                if (pipeSystemLinked)
-                    CreatePipePoint();
-            }
-        }
+       
+        
+
         if (e.isKey && e.character == 'd')
         {
             if (!mousePressed)
@@ -160,40 +169,71 @@ public class PipesystemWindow : EditorWindow {
 
     public void CheckSelection(SceneView sceneView)
     {
-        //PipePoint selection
-        if(pipesystem != null && pipesystem.isSelectablePipePoints)
+        if (pipesystem == null)
+            return;
+        //Select all 
+        if (!pipesystem.selectControlPipePointsOnly)
         {
-            GameObject selectedObject = Selection.activeGameObject;
-            PipePoint pipePoint = null;
-
-            if (selectedObject != null)
-                pipePoint = selectedObject.GetComponent<PipePoint>();
-            else
-                selectedPipePoint.Clear();
-
-            if (pipePoint != null)
+            selectedPipePoint.Clear();
+            foreach (PipePoint pipePoint in pipesystem.pipePoints)
             {
+                foreach(Object go in Selection.objects)
+                {
+                    if (pipePoint.gameObject == go)
+                    {
+                        pipePoint.isSelectedPipePoint = true;
+                        selectedPipePoint.Add(pipePoint);
+                    } 
+                }
                 if (!selectedPipePoint.Contains(pipePoint))
+                    pipePoint.isSelectedPipePoint = false;
+            }
+        }
+        
+        //select ControllPoints only
+        if (pipesystem.selectControlPipePointsOnly)
+        {
+            Object[] objects;
+            objects = Selection.objects;
+
+            foreach(PipePoint pipePoint in pipesystem.pipePoints)
+                pipePoint.isSelectedPipePoint = false;
+
+            selectedPipePoint.Clear();
+
+            foreach (Object totalSelected in objects)
+            {
+                GameObject gameObject = (GameObject)totalSelected;
+
+                PipePoint pipePoint = gameObject.GetComponent<PipePoint>();
+
+                Pipesystem system = gameObject.GetComponent<Pipesystem>();
+                if (system!=null)
+                {
+                    Selection.activeGameObject = pipeSystemObject;
+                    return;
+                }
+
+                if (pipePoint != null)
                 {
                     selectedPipePoint.Add(pipePoint);
                     pipePoint.isSelectedPipePoint = true;
                 }
             }
-            else
-                selectedPipePoint.Clear();
 
-            foreach (PipePoint pipePointi in pipesystem.pipePoints)
+            Object[] newSelection = new Object[selectedPipePoint.Count];
+            for (int i = 0; i < selectedPipePoint.Count; i++)
             {
-                if (!selectedPipePoint.Contains(pipePointi))
-                    pipePointi.isSelectedPipePoint = false;
+                newSelection[i] = selectedPipePoint[i].gameObject;
             }
-        }
 
-        Event e = Event.current;
+            Selection.objects = newSelection;
+        }
 
         //Segment selection
         if(segmentSelection)
         {
+            Event e = Event.current;
             Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
             RaycastHit hit = new RaycastHit();
 
@@ -261,6 +301,7 @@ public class PipesystemWindow : EditorWindow {
                     pipesystem.pipePoints.Add(pipesystem.pipePointHolder.transform.GetChild(i).gameObject.GetComponent<PipePoint>());
                 }
 
+                RemoveMissingObjectsFromList();
                 RenamePipePoints();
                 forcePipeUpdate = true;
             }
@@ -298,6 +339,7 @@ public class PipesystemWindow : EditorWindow {
             newPipePoint.oldPosition = spawnPosition;
 
             newPipePoint.indexInPipesystem = 1;
+            RenamePipePoints();
             Selection.activeObject = newPipePoint;
         }
         else if (selectedPipePoint.Count == 0)
@@ -321,61 +363,38 @@ public class PipesystemWindow : EditorWindow {
                 pipesystem.pipePoints.Add(newPipePoint);
                 newPipePoint.correspondingPipesystem = pipesystem;
                 newPipePoint.oldPosition = spawnPosition;
-
-                newPipePoint.connectedPipePoints.Add(pipePoint);
-                pipePoint.connectedPipePoints.Add(newPipePoint);
+                CreatePipeLine(pipePoint, newPipePoint);
 
                 newSelected[indexOfNewSelected] = newPipePoint.gameObject;
                 indexOfNewSelected++;
-
-
-                //implement pipepoint index
-
             }
             //select the new pipepoints
             selectedPipePoint.Clear();
 
-            foreach (GameObject pipePoint in newSelected)
-                selectedPipePoint.Add(pipePoint.GetComponent<PipePoint>());
+            foreach (GameObject go in newSelected)
+                selectedPipePoint.Add(go.GetComponent<PipePoint>());
 
             Selection.objects = newSelected;
         }
-
-        //Postactions
-        RenamePipePoints();
-        CreatePipeLine();
     }
 
     public void ConnectPipePoints()
     {
         //if two pipepoints are selecetd and not already connected
         if(selectedPipePoint.Count == 2 && !selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
-        {
-            selectedPipePoint[0].connectedPipePoints.Add(selectedPipePoint[1]);
-            selectedPipePoint[1].connectedPipePoints.Add(selectedPipePoint[0]);
-            CreatePipeLine();
-            forcePipeUpdate = true;
-        }
+            CreatePipeLine(selectedPipePoint[0], selectedPipePoint[1]);
     }
 
     public void DeleteConnectionBetweenPipePoints()
     {
-        //if two pipepoints are selecetd and connected
+        //if two pipepoints are selecetd and connected delete the connection
         if (selectedPipePoint.Count == 2 && selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
         {
-            PipeLine pipeLineToDelete; 
             foreach(PipeLine pipeLine in selectedPipePoint[0].pipeLines)
             {
                 if(selectedPipePoint[1].pipeLines.Contains(pipeLine))
                 {
-                    pipeLineToDelete = pipeLine;
-
-                    selectedPipePoint[0].connectedPipePoints.Remove(selectedPipePoint[1]);
-                    selectedPipePoint[1].connectedPipePoints.Remove(selectedPipePoint[0]);
-                    selectedPipePoint[1].drawnPipePoints.Remove(selectedPipePoint[0]);
-                    selectedPipePoint[0].drawnPipePoints.Remove(selectedPipePoint[1]);
-
-                    DeletePipeLine(pipeLineToDelete);
+                    DeletePipeLine(pipeLine);
                     forcePipeUpdate = true;
                     break;
                 }
@@ -387,21 +406,19 @@ public class PipesystemWindow : EditorWindow {
     {
         if(selectedPipePoint.Count==2 && selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
         {
+            //create the new PipePoint
             PipePoint newPipePoint;
-
-            Vector3 point1 = selectedPipePoint[0].transform.position;
-            Vector3 point2 = selectedPipePoint[1].transform.position;
 
             Vector3 spawnPosition;
 
-            spawnPosition = (point1 + point2)/2;
+            spawnPosition = (selectedPipePoint[0].transform.position + selectedPipePoint[1].transform.position)/2;
 
             newPipePoint = Instantiate(prefabPipePoint, spawnPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
             pipesystem.pipePoints.Add(newPipePoint);
             newPipePoint.correspondingPipesystem = pipesystem;
             newPipePoint.oldPosition = spawnPosition;
 
-            //pipeline
+            //delete the old pipeline
             foreach(PipeLine pipeLine in selectedPipePoint[0].pipeLines)
             {
                 if(selectedPipePoint[1].pipeLines.Contains(pipeLine))
@@ -411,81 +428,50 @@ public class PipesystemWindow : EditorWindow {
                 }
             }
 
-            //connection
-            selectedPipePoint[0].connectedPipePoints.Remove(selectedPipePoint[1]);
-            selectedPipePoint[1].connectedPipePoints.Remove(selectedPipePoint[0]);
-            selectedPipePoint[0].drawnPipePoints.Remove(selectedPipePoint[1]);
-            selectedPipePoint[1].drawnPipePoints.Remove(selectedPipePoint[0]);
-
-            selectedPipePoint[0].connectedPipePoints.Add(newPipePoint);
-            selectedPipePoint[1].connectedPipePoints.Add(newPipePoint);
-
-            newPipePoint.connectedPipePoints.Add(selectedPipePoint[0]);
-            newPipePoint.connectedPipePoints.Add(selectedPipePoint[1]);
-
-            RenamePipePoints();
-            CreatePipeLine();
-            forcePipeUpdate = true;
+            //Create new pipeLines
+            CreatePipeLine( selectedPipePoint[0], newPipePoint);
+            CreatePipeLine( newPipePoint, selectedPipePoint[1]);
         }
     }
 
     public void MergePipePoints()
     {
+        //Deletes the two selected contollpoint and creates a new one between them with all their connections
         if(selectedPipePoint.Count == 2)
         {
-            if(selectedPipePoint[0].connectedPipePoints.Contains(selectedPipePoint[1]))
+            Vector3 newPosition = (selectedPipePoint[0].transform.position + selectedPipePoint[1].transform.position)/2;
+            PipePoint newPipePoint;
+
+            //Get all connections
+            List<PipePoint> newConnecteControllPoints = new List<PipePoint>();
+            foreach(PipePoint pipePoint in selectedPipePoint)
             {
-                Vector3 newPosition = (selectedPipePoint[0].transform.position + selectedPipePoint[1].transform.position)/2;
-                PipePoint newPipePoint;
-
-                List<PipePoint> newConnectedPipePoints = new List<PipePoint>();
-
-                foreach (PipePoint pipePoint in selectedPipePoint)
+                foreach(PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
                 {
-                    Debug.Log(pipePoint.pipeLines.Count);
-                    for(int i = 0; i <= pipePoint.pipeLines.Count; i++)
-                    {
-                        if(pipePoint.pipeLines!=null && pipePoint.pipeLines.Count>0)
-                            DeletePipeLine(pipePoint.pipeLines[0]);
-
-                    }
+                    if(!newConnecteControllPoints.Contains(connectedPipePoint) && !selectedPipePoint.Contains(connectedPipePoint))
+                        newConnecteControllPoints.Add(connectedPipePoint);
                 }
-
-                newPipePoint = Instantiate(prefabPipePoint, newPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
-                pipesystem.pipePoints.Add(newPipePoint);
-                newPipePoint.correspondingPipesystem = pipesystem;
-                newPipePoint.oldPosition = newPosition;
-
-                foreach(PipePoint pipePoint in selectedPipePoint)
-                {
-                    foreach(PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
-                    {
-                        if(!newConnectedPipePoints.Contains(connectedPipePoint) && !selectedPipePoint.Contains(connectedPipePoint))
-                        {
-                            newConnectedPipePoints.Add(connectedPipePoint);
-                        }
-
-                        if(!selectedPipePoint.Contains(connectedPipePoint))
-                        {
-                            connectedPipePoint.connectedPipePoints.Remove(pipePoint);
-                            connectedPipePoint.drawnPipePoints.Remove(pipePoint);
-                            connectedPipePoint.connectedPipePoints.Add(newPipePoint);
-                        }
-                    }
-                }
-                newPipePoint.connectedPipePoints = newConnectedPipePoints;
-
-                foreach(PipePoint pipePoint in selectedPipePoint)
-                    pipePoint.connectedPipePoints.Clear();
-
-                DeletePipePoint();
-
-                Selection.activeGameObject = newPipePoint.gameObject;
-
-                RenamePipePoints();
-                CreatePipeLine();
-                forcePipeUpdate = true;
             }
+
+            //Delete old connections and contollPoints
+            foreach (PipePoint pipePoint in selectedPipePoint)
+            {
+                while(pipePoint.pipeLines.Count > 0)
+                        DeletePipeLine(pipePoint.pipeLines[pipePoint.pipeLines.Count-1]);
+            }
+            DeletePipePoint();
+
+            //create new pipePoint and connections
+            newPipePoint = Instantiate(prefabPipePoint, newPosition, Quaternion.identity, pipesystem.pipePointHolder.transform) as PipePoint;
+            pipesystem.pipePoints.Add(newPipePoint);
+            newPipePoint.correspondingPipesystem = pipesystem;
+            newPipePoint.oldPosition = newPosition;
+            newPipePoint.connectedPipePoints = newConnecteControllPoints;
+
+            foreach (PipePoint controllPoint in newConnecteControllPoints)
+                CreatePipeLine(controllPoint, newPipePoint);
+
+            Selection.activeGameObject = newPipePoint.gameObject;
         }
     }
 
@@ -501,9 +487,9 @@ public class PipesystemWindow : EditorWindow {
         {
             foreach (PipeLine pipeLine in pipePoint.pipeLines)
             {
-                foreach(PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
+                foreach (PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
                 {
-                    if(connectedPipePoint.pipeLines.Contains(pipeLine))
+                    if (connectedPipePoint.pipeLines.Contains(pipeLine))
                     {
                         pipeLine.name = "PipeLine " + connectedPipePoint.indexInPipesystem + " - " + pipePoint.indexInPipesystem;
                     }
@@ -514,13 +500,15 @@ public class PipesystemWindow : EditorWindow {
 
     public void DeleteAllPipePoints()
     {
-        RemoveMissingObjectsFromList();
+        //harddeletes everything
+        while (pipesystem.pipePointHolder.transform.childCount > 0)
+            DestroyImmediate(pipesystem.pipePointHolder.transform.GetChild(0).gameObject);
 
-        foreach (PipePoint pipePoint in pipesystem.pipePoints)
-        {
-            selectedPipePoint.Add(pipePoint);
-        }
-        DeletePipePoint();
+        while (pipesystem.pipeLineHolder.transform.childCount > 0)
+            DestroyImmediate(pipesystem.pipeLineHolder.transform.GetChild(0).gameObject);
+
+        pipesystem.pipePoints.Clear();
+        selectedPipePoint.Clear();
         Selection.activeObject = pipeSystemObject;
     }
 
@@ -536,6 +524,10 @@ public class PipesystemWindow : EditorWindow {
 
     public void DeletePipePoint()
     {
+        List<PipePoint> controllPointsToDelete = new List<PipePoint>();
+
+        GameObject[] newSelectedControllPoint = new GameObject[1];
+
         foreach (PipePoint pipePoint in selectedPipePoint)
         {
             if (pipePoint != null)
@@ -544,57 +536,68 @@ public class PipesystemWindow : EditorWindow {
                 {
                     case 0:
                         {
-                            DestroyImmediate(pipePoint.gameObject);
-                            RemoveMissingObjectsFromList();
+                            controllPointsToDelete.Add(pipePoint);
+                            Selection.activeGameObject = pipeSystemObject;
                         }
                         break;
                     case 1:
                         {
-                            Selection.activeGameObject = pipePoint.connectedPipePoints[0].gameObject;
-                            pipePoint.connectedPipePoints[0].drawnPipePoints.Remove(pipePoint);
-                            pipePoint.connectedPipePoints[0].connectedPipePoints.Remove(pipePoint);
-
+                            newSelectedControllPoint[0] = pipePoint.connectedPipePoints[0].gameObject;
                             DeletePipeLine(pipePoint.pipeLines[0]);
-                            DestroyImmediate(pipePoint.gameObject);
-                            RemoveMissingObjectsFromList();
+                            controllPointsToDelete.Add(pipePoint);
+                            
                         }
                         break;
                     case 2:
                         {
-                            Selection.activeGameObject = pipePoint.connectedPipePoints[0].gameObject;
-
-                            //Remove references from self on others
-                            pipePoint.connectedPipePoints[0].drawnPipePoints.Remove(pipePoint);
-                            pipePoint.connectedPipePoints[1].drawnPipePoints.Remove(pipePoint);
-
-                            pipePoint.connectedPipePoints[0].connectedPipePoints.Remove(pipePoint);
-                            pipePoint.connectedPipePoints[1].connectedPipePoints.Remove(pipePoint);
-
-                            //connect others
-                            pipePoint.connectedPipePoints[0].connectedPipePoints.Add(pipePoint.connectedPipePoints[1]);
-                            pipePoint.connectedPipePoints[1].connectedPipePoints.Add(pipePoint.connectedPipePoints[0]);
+                            //if the selected controllPoint sits between two other controllPoints, delete it and connect the others
+                            PipePoint newStartControllPoint = pipePoint.connectedPipePoints[0];
+                            PipePoint newEndControllPoint = pipePoint.connectedPipePoints[1];
 
                             DeletePipeLine(pipePoint.pipeLines[1]);
                             DeletePipeLine(pipePoint.pipeLines[0]);
 
+                            CreatePipeLine(newStartControllPoint, newEndControllPoint);
+                            controllPointsToDelete.Add(pipePoint);
 
-                            DestroyImmediate(pipePoint.gameObject);
-                            RemoveMissingObjectsFromList();
-                            CreatePipeLine();
+                            newSelectedControllPoint[0] = newStartControllPoint.gameObject;
                             forcePipeUpdate = true;
                         }
                         break;
                     default:
-                        Debug.Log("To many connections");
+                        {
+                            // if there are 3 or more connected controllPoints delete all connections
+                            while(pipePoint.pipeLines.Count > 0)
+                                DeletePipeLine(pipePoint.pipeLines[pipePoint.pipeLines.Count - 1]);
+
+                            controllPointsToDelete.Add(pipePoint);
+                        }
                         break;
                 }
             }
         }
+
+        while (controllPointsToDelete.Count > 0)
+        {
+            DestroyImmediate(controllPointsToDelete[controllPointsToDelete.Count - 1].gameObject);
+            controllPointsToDelete.RemoveAt(controllPointsToDelete.Count - 1);
+        }
+
         selectedPipePoint.Clear();
+        if (newSelectedControllPoint[0]!=null)
+        {
+            foreach(GameObject controllPoint in newSelectedControllPoint)
+                selectedPipePoint.Add(controllPoint.GetComponent<PipePoint>());
+
+            Selection.objects = newSelectedControllPoint;
+        }
+        
+        RemoveMissingObjectsFromList();
     }
 
     public void DeletePipeLine(PipeLine pipeLine)
     {
+        //Clear objects from Lists
         foreach (PipeSegment segment in pipeLine.segments)
             DestroyImmediate(segment);
 
@@ -607,9 +610,14 @@ public class PipesystemWindow : EditorWindow {
         pipeLine.segments.Clear();
         pipeLine.interjacents.Clear();
 
+        //Remove connections
+        pipeLine.startPipePoint.connectedPipePoints.Remove(pipeLine.endPipePoint);
+        pipeLine.endPipePoint.connectedPipePoints.Remove(pipeLine.startPipePoint);
+
         pipeLine.startPipePoint.pipeLines.Remove(pipeLine);
         pipeLine.endPipePoint.pipeLines.Remove(pipeLine);
 
+        //destroy
         DestroyImmediate(pipeLine.gameObject);
     }
 
@@ -623,30 +631,26 @@ public class PipesystemWindow : EditorWindow {
         }
     }
 
-    public void CreatePipeLine()
+    public void CreatePipeLine(PipePoint controllPoint_1, PipePoint controllPoint_2)
     {
-        //check foreach pipePoint if the connected Pipepoints already created the pipes
-        foreach (PipePoint pipePoint in pipesystem.pipePoints)
-        {
-            foreach (PipePoint connectedPipePoint in pipePoint.connectedPipePoints)
-            {
-                if (!connectedPipePoint.drawnPipePoints.Contains(pipePoint))
-                {
-                    PipeLine pipeLine;
+        PipeLine newPipeLine;
 
-                    pipeLine = Instantiate(prefabPipeLine, pipesystem.pipeLinelHolder.transform);
+        RenamePipePoints();
 
-                    pipePoint.drawnPipePoints.Add(connectedPipePoint);
-                    connectedPipePoint.drawnPipePoints.Add(pipePoint);
-                    pipeLine.startPipePoint = pipePoint;
-                    pipeLine.endPipePoint = connectedPipePoint;
-                    pipeLine.correspondingPipesystem = pipesystem;
-                    pipePoint.pipeLines.Add(pipeLine);
-                    connectedPipePoint.pipeLines.Add(pipeLine);
-                    pipeLine.name = "PipeLine " + pipePoint.indexInPipesystem + " - " + connectedPipePoint.indexInPipesystem;
-                }
-            }
-        }
+        //create and setup new connectionLine
+        newPipeLine = Instantiate(prefabPipeLine, pipesystem.pipeLineHolder.transform);
+        newPipeLine.correspondingPipesystem = pipesystem;
+        newPipeLine.startPipePoint = controllPoint_1;
+        newPipeLine.endPipePoint = controllPoint_2;
+        newPipeLine.name = "PipeLine " + controllPoint_1.indexInPipesystem + " - " + controllPoint_2.indexInPipesystem;
+
+        //setup controllPoint referenzes
+        controllPoint_1.connectedPipePoints.Add(controllPoint_2);
+        controllPoint_2.connectedPipePoints.Add(controllPoint_1);
+        controllPoint_1.pipeLines.Add(newPipeLine);
+        controllPoint_2.pipeLines.Add(newPipeLine);
+
+        forcePipeUpdate = true;
     }
 
     public void UpdatePipes()
@@ -809,12 +813,16 @@ public class PipesystemWindow : EditorWindow {
 
     public void ChangeSegment(SceneView sceneView)
     {
-        if(currentHoverd!=null)
+        int controlId = GUIUtility.GetControlID(FocusType.Passive);
+        if (currentHoverd != null)
         {
             Event e = Event.current;
             int currentSegment = currentHoverd.segmentNumber;
+            //if (e.type == EventType.ScrollWheel)
+            //    Debug.Log("wheel");
 
-            if(e.type == EventType.ScrollWheel)
+
+            if (e.type == EventType.MouseDown && e.button == 0)
             {
                 currentSegment++;
                 if (currentSegment >= pipesystem.segmentPrefab.Count)
@@ -824,6 +832,7 @@ public class PipesystemWindow : EditorWindow {
                 Instantiate(pipesystem.segmentPrefab[currentSegment], currentHoverd.transform);
                 currentHoverd.segmentNumber = currentSegment;
             }
+            HandleUtility.AddDefaultControl(controlId);
         }
     }
 }

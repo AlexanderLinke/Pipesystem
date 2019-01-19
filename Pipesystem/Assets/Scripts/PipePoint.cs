@@ -5,7 +5,6 @@ using UnityEngine;
 public class PipePoint : MonoBehaviour {
 
     public List<PipePoint> connectedPipePoints;
-    public List<PipePoint> drawnPipePoints;
     public List<PipeLine> pipeLines;
 
     public bool isSelectedPipePoint;
@@ -18,7 +17,7 @@ public class PipePoint : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        if (correspondingPipesystem.isLinked && correspondingPipesystem.isSelectablePipePoints)
+        if (correspondingPipesystem.isLinked)
         {
             if (!isSelectedPipePoint)
             {
