@@ -49,7 +49,10 @@ public class PipesystemWindow : EditorWindow {
             GUILayout.BeginHorizontal();
 
             if (GUILayout.Button("New"))
+            {
+                
                 CreatePipePoint();
+            }
 
             if (GUILayout.Button("Insert"))
                 InsertPipePoint();
@@ -326,7 +329,7 @@ public class PipesystemWindow : EditorWindow {
     public void CreatePipePoint()
     {
         Vector3 spawnPosition = Vector3.zero;
-        PipePoint newPipePoint;
+        PipePoint newPipePoint = null;
 
         //if there is not already a pipepoint spawn one
         if (pipesystem.pipePoints.Count == 0)
@@ -363,6 +366,7 @@ public class PipesystemWindow : EditorWindow {
                 pipesystem.pipePoints.Add(newPipePoint);
                 newPipePoint.correspondingPipesystem = pipesystem;
                 newPipePoint.oldPosition = spawnPosition;
+
                 CreatePipeLine(pipePoint, newPipePoint);
 
                 newSelected[indexOfNewSelected] = newPipePoint.gameObject;
@@ -431,6 +435,12 @@ public class PipesystemWindow : EditorWindow {
             //Create new pipeLines
             CreatePipeLine( selectedPipePoint[0], newPipePoint);
             CreatePipeLine( newPipePoint, selectedPipePoint[1]);
+
+            //Selection
+            selectedPipePoint.Clear();
+            selectedPipePoint.Add(newPipePoint);
+            Selection.activeGameObject = newPipePoint.gameObject;
+
         }
     }
 
@@ -466,10 +476,12 @@ public class PipesystemWindow : EditorWindow {
             pipesystem.pipePoints.Add(newPipePoint);
             newPipePoint.correspondingPipesystem = pipesystem;
             newPipePoint.oldPosition = newPosition;
-            newPipePoint.connectedPipePoints = newConnecteControllPoints;
 
-            foreach (PipePoint controllPoint in newConnecteControllPoints)
-                CreatePipeLine(controllPoint, newPipePoint);
+            //foreach (PipePoint controllPoint in newConnecteControllPoints)
+            for(int i = 0; i < newConnecteControllPoints.Count; i++)
+            {
+                CreatePipeLine(newConnecteControllPoints[i], newPipePoint);
+            }
 
             Selection.activeGameObject = newPipePoint.gameObject;
         }
