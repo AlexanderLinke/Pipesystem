@@ -112,11 +112,11 @@ MonoBehaviour:
   pipePoints: []
   pipeStyle: {fileID: 11400000, guid: a1d84c6afb6e61d428e3f813a596c762, type: 2}
   pipePointHolder: {fileID: 1183635972794254}
-  pipeLinelHolder: {fileID: 1749941382340372}
+  pipeLineHolder: {fileID: 1749941382340372}
   segmentLength: 4
   segmentDiameter: 1
   isLinked: 1
-  isSelectablePipePoints: 1
+  selectControlPipePointsOnly: 0
   segmentPrefab:
   - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
   - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
@@ -136,4 +136,4 @@ MonoBehaviour:
   - serializedVersion: 2
     rgba: 4278255615
   - serializedVersion: 2
-    rgba: 4278255615
+    rgba: 4278255360

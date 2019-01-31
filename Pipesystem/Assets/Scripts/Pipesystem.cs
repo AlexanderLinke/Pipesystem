@@ -26,4 +26,6 @@ public class Pipesystem : MonoBehaviour
     //Gizmo Colors
     public List<Color32> gizmoColors;
 
+    public Material mainMaterial;
+
 }

@@ -31,9 +31,15 @@ public class PipeStyleWindow : EditorWindow
 
     private int colorfieldWidth = 160;
 
+    //Material
+    private float materialMetallicValue;
+    private float materialSmoothnessValue;
+    //private Shader tempShader;
+
     private bool showSegmentGroup;
     private bool showInterjacentGroup;
     private bool showGizmoGroup;
+    private bool showMaterialGroup;
 
     [MenuItem("Window/Pipesystem Style")]
     public static void ShowWindow()
@@ -87,6 +93,12 @@ public class PipeStyleWindow : EditorWindow
             showGizmoGroup = EditorGUILayout.Foldout(showGizmoGroup, "Gizmo");
             if (showGizmoGroup)
                 GizmoColors();
+            
+            //Material
+            showMaterialGroup = EditorGUILayout.Foldout(showMaterialGroup, "Matrial");
+            if (showMaterialGroup)
+                MainMaterial();
+
 
 
         }
@@ -131,7 +143,6 @@ public class PipeStyleWindow : EditorWindow
 
         if (positionStyleChoser != oldPositionStyleChoser)
         {
-            Debug.Log(positionStyleChoser);
             usedStyle = styleArray[positionStyleChoser];
             pipesystem.pipeStyle = styleArray[positionStyleChoser];
 
@@ -433,6 +444,8 @@ public class PipeStyleWindow : EditorWindow
         int tempInt = 0;
         Color32 tempColor = Color.red;
         float tempFloat;
+        
+        //Material tempMat = new Material(tempShader);
 
         tempFloat = pipesystem.segmentLength;
         style.segmentLength = tempFloat;
@@ -501,6 +514,10 @@ public class PipeStyleWindow : EditorWindow
             tempColor = pipesystem.gizmoColors[i];
             style.gizmoColors[i] = tempColor;
         }
+
+        //material
+        //tempMat = pipesystem.mainMaterial;
+        //style.material = tempMat;
     }
 
     public void RevertChanges()
@@ -615,5 +632,26 @@ public class PipeStyleWindow : EditorWindow
         GUILayout.EndHorizontal();
 
         GUILayout.EndVertical();
+    }
+
+    public void MainMaterial()
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Color");
+        pipesystem.mainMaterial.color = EditorGUILayout.ColorField(pipesystem.mainMaterial.color, GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Metallic");
+        materialMetallicValue = GUILayout.HorizontalSlider(materialMetallicValue, 0, 1);
+        pipesystem.mainMaterial.SetFloat("_Metallic", materialMetallicValue);
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Smoothness");
+        materialSmoothnessValue = GUILayout.HorizontalSlider(materialSmoothnessValue, 0, 1);
+        pipesystem.mainMaterial.SetFloat("_Glossiness", materialSmoothnessValue);
+        GUILayout.EndHorizontal();
+
     }
 }

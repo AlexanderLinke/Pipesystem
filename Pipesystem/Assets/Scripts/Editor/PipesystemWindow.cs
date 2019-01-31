@@ -50,7 +50,7 @@ public class PipesystemWindow : EditorWindow {
 
             if (GUILayout.Button("New"))
             {
-                
+                Undo.RegisterCompleteObjectUndo(pipeSystemObject,"Create new Controll-Point");
                 CreatePipePoint();
             }
 
@@ -270,7 +270,6 @@ public class PipesystemWindow : EditorWindow {
         GameObject newPipeSystem;
         newPipeSystem = Instantiate(prefabPipeSystem);
         newPipeSystem.name = "Pipesystem";
-        Selection.activeGameObject = newPipeSystem;
         LinkPipeSystem();
         CreatePipePoint();
     }
@@ -710,7 +709,9 @@ public class PipesystemWindow : EditorWindow {
                             }
                         }
                         PipeSegment newSegment = Instantiate(prefabSegment, pipeLine.SegmentHolder.transform);
-                        Instantiate(pipesystem.segmentPrefab[randomSegmentPrefabIndex], newSegment.transform);
+
+                        GameObject newSegmentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.segmentPrefab[randomSegmentPrefabIndex]);
+                        newSegmentPrefab.transform.parent = newSegment.gameObject.transform;
 
                         newSegment.pipesystem = pipesystem;
                         newSegment.length = pipesystem.segmentLength;
@@ -787,10 +788,13 @@ public class PipesystemWindow : EditorWindow {
                                         index++;
                                 }
                             }
+                            GameObject newInterjacentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex]);
+                            newInterjacentPrefab.transform.parent = pipeLine.InterjacentHolder.transform;
+
                             if (pipePoint == pipeLine.endPipePoint)
-                                pipeLine.interjacents.Add(Instantiate(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
+                                pipeLine.interjacents.Add(newInterjacentPrefab);
                             else
-                                pipeLine.interjacents.Insert(0, Instantiate(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex], pipeLine.InterjacentHolder.transform));
+                                pipeLine.interjacents.Insert(0, newInterjacentPrefab);
                         }
 
                         //Remove Interjacents
@@ -841,7 +845,12 @@ public class PipesystemWindow : EditorWindow {
                     currentSegment = 0;
 
                 DestroyImmediate(currentHoverd.gameObject.transform.GetChild(0).gameObject);
-                Instantiate(pipesystem.segmentPrefab[currentSegment], currentHoverd.transform);
+
+                GameObject newSegmentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.segmentPrefab[currentSegment]);
+                newSegmentPrefab.transform.parent = currentHoverd.gameObject.transform;
+                newSegmentPrefab.transform.position = currentHoverd.gameObject.transform.position;
+                newSegmentPrefab.transform.rotation = currentHoverd.gameObject.transform.rotation;
+
                 currentHoverd.segmentNumber = currentSegment;
             }
             HandleUtility.AddDefaultControl(controlId);
