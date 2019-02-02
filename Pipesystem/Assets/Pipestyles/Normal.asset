@@ -9,17 +9,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 475e0268b80ff98419735ea3da4eb0fb, type: 3}
-  m_Name: Default
+  m_Name: Normal
   m_EditorClassIdentifier: 
-  segmentLength: 4
+  segmentLength: 2
   segmentDiameter: 1
   segmentPrefab:
-  - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
-  - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
-  segmentProbability: 5000000014000000
-  interjacentPrefab:
-  - {fileID: 1486190417364310, guid: 8586a2c2e2797f646a85715e968e07b6, type: 2}
-  interjacentProbability: 64000000
+  - {fileID: 1100376898862934, guid: 06407199120261445a326aec192de445, type: 2}
+  segmentProbability: 64000000
+  interjacentPrefab: []
+  interjacentProbability: 
   material: {fileID: 0}
   gizmoColors:
   - serializedVersion: 2

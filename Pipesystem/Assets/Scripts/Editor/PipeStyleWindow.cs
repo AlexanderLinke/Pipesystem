@@ -147,9 +147,9 @@ public class PipeStyleWindow : EditorWindow
             pipesystem.pipeStyle = styleArray[positionStyleChoser];
 
             oldSegmentProbability = new List<int>();
-            foreach (int i in usedStyle.segmentProbability)
+            for (int i = 0; i < usedStyle.segmentProbability.Count; i++)
             {
-                int temp = usedStyle.segmentProbability[1];
+                int temp = usedStyle.segmentProbability[i];
                 oldSegmentProbability.Add(temp);
             }
 
@@ -257,12 +257,9 @@ public class PipeStyleWindow : EditorWindow
     {
         spareSegmentProbability = 100;
 
-
         //subtract all probabilities
         for (int i = 0; i < pipesystem.segmentProbability.Count; i++)
-        {
             spareSegmentProbability -= pipesystem.segmentProbability[i];
-        }
 
         //if someone changes and sparesegmentProbability would fall below 0, stop
         for (int i = 0; i < pipesystem.segmentProbability.Count; i++)
@@ -402,7 +399,7 @@ public class PipeStyleWindow : EditorWindow
         }
 
         //create a new pipestyle instance with the current values
-        PipeStyle newStyle = (PipeStyle)CreateInstance("PipesystemStyle");
+        PipeStyle newStyle = (PipeStyle)CreateInstance("PipeStyle");
 
         newStyle.segmentPrefab = new List<GameObject>();
         newStyle.segmentProbability = new List<int>();

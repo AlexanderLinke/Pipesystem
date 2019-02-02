@@ -4,17 +4,17 @@ using UnityEngine;
 
 public class Pipesystem : MonoBehaviour
 {
-    public List<PipePoint> pipePoints;
+    public List<ControlPoint> controlPoints;
     public PipeStyle pipeStyle;
 
-    public GameObject pipePointHolder;
-    public GameObject pipeLineHolder;
+    public GameObject controlPointHolder;
+    public GameObject connectionLineHolder;
 
     public float segmentLength;
     public float segmentDiameter;
 
     public bool isLinked;
-    public bool selectControlPipePointsOnly;
+    public bool selectControlPointsOnly;
 
     //Prefabs with style
     public List<GameObject> segmentPrefab;

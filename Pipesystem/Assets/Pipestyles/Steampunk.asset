@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 475e0268b80ff98419735ea3da4eb0fb, type: 3}
+  m_Name: Steampunk
+  m_EditorClassIdentifier: 
+  segmentLength: 4
+  segmentDiameter: 1
+  segmentPrefab:
+  - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 2}
+  - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 2}
+  segmentProbability: 5000000014000000
+  interjacentPrefab:
+  - {fileID: 1486190417364310, guid: 8586a2c2e2797f646a85715e968e07b6, type: 2}
+  interjacentProbability: 64000000
+  material: {fileID: 0}
+  gizmoColors:
+  - serializedVersion: 2
+    rgba: 4278255615
+  - serializedVersion: 2
+    rgba: 1677787135
+  - serializedVersion: 2
+    rgba: 4278255360
+  - serializedVersion: 2
+    rgba: 1677786880
+  - serializedVersion: 2
+    rgba: 4278255615
+  - serializedVersion: 2
+    rgba: 4278255360

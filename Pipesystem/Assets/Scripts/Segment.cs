@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PipeSegment : MonoBehaviour {
+public class Segment : MonoBehaviour {
 
     public float diameter;
     public float length;

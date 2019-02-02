@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PipePoint : MonoBehaviour {
+public class ControlPoint : MonoBehaviour {
 
-    public List<PipePoint> connectedPipePoints;
-    public List<PipeLine> pipeLines;
+    public List<ControlPoint> connectedControlPoints;
+    public List<ConnectionLine> connectionLines;
 
-    public bool isSelectedPipePoint;
+    public bool isSelectedControlPoint;
 
     public Pipesystem correspondingPipesystem;
 
@@ -19,7 +19,7 @@ public class PipePoint : MonoBehaviour {
     {
         if (correspondingPipesystem.isLinked)
         {
-            if (!isSelectedPipePoint)
+            if (!isSelectedControlPoint)
             {
                 Gizmos.color = correspondingPipesystem.gizmoColors[0];
                 Gizmos.DrawWireSphere(transform.position, 1);

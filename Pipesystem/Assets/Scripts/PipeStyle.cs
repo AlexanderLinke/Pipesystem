@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Pipestyle", menuName = "Pipestyle")]
 public class PipeStyle : ScriptableObject
 {
-
     public float segmentLength;
     public float segmentDiameter;
 
