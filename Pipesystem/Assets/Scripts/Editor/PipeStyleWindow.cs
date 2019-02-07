@@ -4,7 +4,6 @@ using UnityEditor;
 
 public class PipeStyleWindow : EditorWindow
 {
-
     public PipeStyle usedStyle;
     public GameObject pipesystemObject;
     public Pipesystem pipesystem;
@@ -35,6 +34,9 @@ public class PipeStyleWindow : EditorWindow
     private float materialMetallicValue;
     private float materialSmoothnessValue;
     //private Shader tempShader;
+
+    private float oldGizmoSizeControlPoints;
+    private float oldGizmoSizeSnapPoints;
 
     private bool showSegmentGroup;
     private bool showInterjacentGroup;
@@ -92,7 +94,7 @@ public class PipeStyleWindow : EditorWindow
             //GizmoColors
             showGizmoGroup = EditorGUILayout.Foldout(showGizmoGroup, "Gizmo");
             if (showGizmoGroup)
-                GizmoColors();
+                Gizmos();
             
             //Material
             showMaterialGroup = EditorGUILayout.Foldout(showMaterialGroup, "Matrial");
@@ -174,20 +176,24 @@ public class PipeStyleWindow : EditorWindow
         if (pipesystem.segmentProbability.Count > 0)
             CalculateSegmentProbability();
 
-        //Segment Length
+        //Segment properties
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Segment Length");
+        GUILayout.Label("Length:");
         pipesystem.segmentLength = EditorGUILayout.FloatField(pipesystem.segmentLength);
         GUILayout.EndHorizontal();
 
-        //Segment Diameter
         GUILayout.BeginHorizontal();
-        GUILayout.Label("Segment Diameter");
+        GUILayout.Label("Diameter:");
         pipesystem.segmentDiameter = EditorGUILayout.FloatField(pipesystem.segmentDiameter);
         GUILayout.EndHorizontal();
+
+        GUILayout.Label("Distance to ControlPoint:");
+        GUILayout.BeginHorizontal();
+        pipesystem.distanceSegmentsControlPoint = GUILayout.HorizontalSlider(pipesystem.distanceSegmentsControlPoint,0,50);
+        pipesystem.distanceSegmentsControlPoint = EditorGUILayout.FloatField(pipesystem.distanceSegmentsControlPoint);
+        GUILayout.EndHorizontal();
+
         GUILayout.Space(10);
-
-
         //Spare segment probability
         GUILayout.Label("Spare Segment Probabilty: " + spareSegmentProbability.ToString());
 
@@ -450,6 +456,8 @@ public class PipeStyleWindow : EditorWindow
         tempFloat = pipesystem.segmentDiameter;
         style.segmentDiameter = tempFloat;
 
+        tempFloat = pipesystem.distanceSegmentsControlPoint;
+        style.distanceSegmentsControlPoint = tempFloat;
 
         //fill segment count if to low
         do
@@ -512,6 +520,9 @@ public class PipeStyleWindow : EditorWindow
             style.gizmoColors[i] = tempColor;
         }
 
+        tempFloat = pipesystem.gizmoSizeControlPoints;
+        style.gizmoSizeControlPoints = tempFloat;
+
         //material
         //tempMat = pipesystem.mainMaterial;
         //style.material = tempMat;
@@ -526,6 +537,7 @@ public class PipeStyleWindow : EditorWindow
 
         pipesystem.segmentLength = usedStyle.segmentLength;
         pipesystem.segmentDiameter = usedStyle.segmentDiameter;
+        pipesystem.distanceSegmentsControlPoint = usedStyle.distanceSegmentsControlPoint;
 
         //fill segment count if to low
         while (pipesystem.segmentPrefab.Count < usedStyle.segmentPrefab.Count)
@@ -575,12 +587,14 @@ public class PipeStyleWindow : EditorWindow
             pipesystem.interjacentProbability[i] = usedStyle.interjacentProbability[i];
         }
 
-        //gizmoColors
+        //gizmos
         for (int i = 0; i < pipesystem.gizmoColors.Count; i++)
         {
             tempColor = usedStyle.gizmoColors[i];
             pipesystem.gizmoColors[i] = tempColor;
         }
+
+        pipesystem.gizmoSizeControlPoints = usedStyle.gizmoSizeControlPoints;
     }
 
     public void DeletePipestyle()
@@ -595,9 +609,21 @@ public class PipeStyleWindow : EditorWindow
         //recalculate all pipes
     }
 
-    public void GizmoColors()
+    public void Gizmos()
     {
-        GUILayout.BeginVertical();
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("ControlPoint Size");
+        pipesystem.gizmoSizeControlPoints = GUILayout.HorizontalSlider(pipesystem.gizmoSizeControlPoints,0,10, GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        if(pipesystem.gizmoSizeControlPoints!=oldGizmoSizeControlPoints)
+        {
+            foreach (ControlPoint controlPoint in pipesystem.controlPoints)
+                controlPoint.gizmoSize = pipesystem.gizmoSizeControlPoints;
+
+            oldGizmoSizeControlPoints = pipesystem.gizmoSizeControlPoints;
+        }
+
         GUILayout.BeginHorizontal();
         GUILayout.Label("Unselected Outer");
         pipesystem.gizmoColors[0] = EditorGUILayout.ColorField(pipesystem.gizmoColors[0], GUILayout.Width(colorfieldWidth));
@@ -627,8 +653,6 @@ public class PipeStyleWindow : EditorWindow
         GUILayout.Label("Segment Hover");
         pipesystem.gizmoColors[5] = EditorGUILayout.ColorField(pipesystem.gizmoColors[5], GUILayout.Width(colorfieldWidth));
         GUILayout.EndHorizontal();
-
-        GUILayout.EndVertical();
     }
 
     public void MainMaterial()

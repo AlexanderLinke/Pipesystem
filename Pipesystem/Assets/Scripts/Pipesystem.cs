@@ -12,6 +12,7 @@ public class Pipesystem : MonoBehaviour
 
     public float segmentLength;
     public float segmentDiameter;
+    public float distanceSegmentsControlPoint;
 
     public bool isLinked;
     public bool selectControlPointsOnly;
@@ -23,8 +24,10 @@ public class Pipesystem : MonoBehaviour
     public List<GameObject> interjacentPrefab;
     public List<int> interjacentProbability;
 
-    //Gizmo Colors
+    //Gizmos
     public List<Color32> gizmoColors;
+    public float gizmoSizeControlPoints;
+    public float gizmoSizeSnapPoints;
 
     public Material mainMaterial;
 

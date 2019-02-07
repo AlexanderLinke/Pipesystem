@@ -4,9 +4,12 @@ using UnityEngine;
 
 public class PipeStyle : ScriptableObject
 {
+    //segment
     public float segmentLength;
     public float segmentDiameter;
+    public float distanceSegmentsControlPoint;
 
+    //prefabs
     public List<GameObject> segmentPrefab;
     public List<int> segmentProbability;
 
@@ -15,5 +18,9 @@ public class PipeStyle : ScriptableObject
 
     public Material material;
 
+    //Gizmo
     public List<Color32> gizmoColors;
+
+    public float gizmoSizeControlPoints;
+    public float gizmoSizeSnapPoint;
 }

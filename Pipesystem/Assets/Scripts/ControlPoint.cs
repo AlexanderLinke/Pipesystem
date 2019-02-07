@@ -15,6 +15,8 @@ public class ControlPoint : MonoBehaviour {
 
     public int indexInPipesystem;
 
+    public float gizmoSize;
+
     void OnDrawGizmos()
     {
         if (correspondingPipesystem.isLinked)
@@ -22,18 +24,19 @@ public class ControlPoint : MonoBehaviour {
             if (!isSelectedControlPoint)
             {
                 Gizmos.color = correspondingPipesystem.gizmoColors[0];
-                Gizmos.DrawWireSphere(transform.position, 1);
+                Gizmos.DrawWireSphere(transform.position, gizmoSize);
 
                 Gizmos.color = correspondingPipesystem.gizmoColors[1];
-                Gizmos.DrawSphere(transform.position, 1);
+                Gizmos.DrawSphere(transform.position, gizmoSize);
             }
             else
             {
+                Debug.Log("bob");
                 Gizmos.color = correspondingPipesystem.gizmoColors[2];
-                Gizmos.DrawWireSphere(transform.position, 1);
+                Gizmos.DrawWireSphere(transform.position, gizmoSize);
 
                 Gizmos.color = correspondingPipesystem.gizmoColors[3];
-                Gizmos.DrawSphere(transform.position, 1);
+                Gizmos.DrawSphere(transform.position, gizmoSize);
             }
         }
     }

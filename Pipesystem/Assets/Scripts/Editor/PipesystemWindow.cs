@@ -5,27 +5,25 @@ using UnityEditor;
 
 public class PipesystemWindow : EditorWindow {
 
+    //pipesystem
     private bool pipeSystemLinked;
+    private GameObject pipeSystemObject;
+    private Pipesystem pipesystem;
 
+    //prefabs
     public GameObject prefabPipeSystem;
     public ControlPoint prefabControlPoint;
     public ConnectionLine prefabConnectionLine;
     public Segment prefabSegment;
 
-
-    private List<ControlPoint> selectedControlPoints = new List<ControlPoint>();
-
-    private GameObject pipeSystemObject;
-
-    private Pipesystem pipesystem;
-
     //selection
+    private List<ControlPoint> selectedControlPoints = new List<ControlPoint>();
     private bool mousePressed;
     private bool shiftPressed;
-
     private bool segmentSelection;
     private Segment currentHoverd;
     private bool otherSelection;
+    private SnapPoint selectedSnapPoint;
 
     private bool forcePipeUpdate;
 
@@ -42,6 +40,7 @@ public class PipesystemWindow : EditorWindow {
 
         if (pipeSystemLinked)
         {
+            PipesystemManager.activePipesystem = pipesystem;
             //new and insert
             GUILayout.BeginHorizontal();
 
@@ -62,7 +61,7 @@ public class PipesystemWindow : EditorWindow {
             if (GUILayout.Button("Connect"))
                 ConnectControlPoints();
 
-            if (GUILayout.Button("Delete Connection"))
+            if (GUILayout.Button("Disconnect"))
                 DeleteConnectionBetweenControlPoints();
 
             GUILayout.EndHorizontal();
@@ -119,6 +118,7 @@ public class PipesystemWindow : EditorWindow {
         SceneView.onSceneGUIDelegate += CheckSelection;
         SceneView.onSceneGUIDelegate += ChangeSegment;
 
+        PipesystemManager.activePipesystem = pipesystem;
     }
 
     public void OnDisable()
@@ -126,6 +126,7 @@ public class PipesystemWindow : EditorWindow {
         SceneView.onSceneGUIDelegate -= ShortcutUpdate;
         SceneView.onSceneGUIDelegate -= CheckSelection;
         SceneView.onSceneGUIDelegate -= ChangeSegment;
+        PipesystemManager.activePipesystem = null;
 
     }
 
@@ -168,10 +169,24 @@ public class PipesystemWindow : EditorWindow {
     {
         if (pipesystem == null)
             return;
+
+        //SnapPoint
+        foreach(Object obj in Selection.objects)
+        {
+            GameObject go = (GameObject)obj;
+            if (go != null)
+            {
+                SnapPoint snapPoint = go.GetComponent<SnapPoint>();
+                if (snapPoint != null)
+                    selectedSnapPoint = snapPoint;
+            }
+        }
+
         //Select all 
         if (!pipesystem.selectControlPointsOnly)
         {
             selectedControlPoints.Clear();
+            
             foreach (ControlPoint controlPoint in pipesystem.controlPoints)
             {
                 foreach(Object go in Selection.objects)
@@ -280,12 +295,12 @@ public class PipesystemWindow : EditorWindow {
 
         pipesystem = selectedObject.GetComponent<Pipesystem>();
         pipeSystemObject = selectedObject;
-
+        PipesystemManager.activePipesystem = pipesystem;
         if (!(pipesystem == null || pipeSystemObject == null))
         {
             pipeSystemLinked = true;
             pipesystem.isLinked = true;
-
+            
             //bugfix where after restart the controlPoints list was empty although there were controlPoints 
             int controlPointCount = pipesystem.controlPointHolder.transform.childCount;
 
@@ -312,6 +327,7 @@ public class PipesystemWindow : EditorWindow {
         pipesystem = null;
         pipeSystemObject = null;
         pipeSystemLinked = false;
+        PipesystemManager.activePipesystem = null;
 
         foreach (ControlPoint controlPoint in selectedControlPoints)
             controlPoint.isSelectedControlPoint = false;
@@ -328,12 +344,7 @@ public class PipesystemWindow : EditorWindow {
         if (pipesystem.controlPoints.Count == 0)
         {
             spawnPosition = pipeSystemObject.transform.position;
-
-            newControlPoint = Instantiate(prefabControlPoint, spawnPosition, Quaternion.identity, pipesystem.controlPointHolder.transform) as ControlPoint;
-            pipesystem.controlPoints.Add(newControlPoint);
-            newControlPoint.correspondingPipesystem = pipesystem;
-            newControlPoint.oldPosition = spawnPosition;
-
+            newControlPoint = CreateControlPointBasic(spawnPosition);
             newControlPoint.indexInPipesystem = 1;
             RenameControlPoints();
             Selection.activeObject = newControlPoint;
@@ -354,11 +365,7 @@ public class PipesystemWindow : EditorWindow {
             foreach (ControlPoint controlPoint in selectedControlPoints)
             {
                 spawnPosition = controlPoint.transform.position;
-
-                newControlPoint = Instantiate(prefabControlPoint, spawnPosition, Quaternion.identity, pipesystem.controlPointHolder.transform) as ControlPoint;
-                pipesystem.controlPoints.Add(newControlPoint);
-                newControlPoint.correspondingPipesystem = pipesystem;
-                newControlPoint.oldPosition = spawnPosition;
+                newControlPoint = CreateControlPointBasic(spawnPosition);
 
                 CreateConnectionLine(controlPoint, newControlPoint);
 
@@ -375,11 +382,33 @@ public class PipesystemWindow : EditorWindow {
         }
     }
 
+    ControlPoint CreateControlPointBasic(Vector3 spawnPosition)
+    {
+        ControlPoint newControlPoint;
+
+        newControlPoint = Instantiate(prefabControlPoint, spawnPosition, Quaternion.identity, pipesystem.controlPointHolder.transform) as ControlPoint;
+        pipesystem.controlPoints.Add(newControlPoint);
+        newControlPoint.correspondingPipesystem = pipesystem;
+        newControlPoint.oldPosition = spawnPosition;
+        newControlPoint.gizmoSize = pipesystem.gizmoSizeControlPoints;
+
+        return newControlPoint;
+    }
+
     public void ConnectControlPoints()
     {
         //if two controlPoints are selecetd and not already connected
         if(selectedControlPoints.Count == 2 && !selectedControlPoints[0].connectedControlPoints.Contains(selectedControlPoints[1]))
             CreateConnectionLine(selectedControlPoints[0], selectedControlPoints[1]);
+
+        if(selectedControlPoints.Count==1 && selectedSnapPoint!=null)
+        {
+            ControlPoint newControlPoint = CreateControlPointBasic(selectedSnapPoint.transform.position);
+            CreateConnectionLine(selectedControlPoints[0], newControlPoint);
+            selectedSnapPoint.isConnected = true;
+        }
+
+
     }
 
     public void DeleteConnectionBetweenControlPoints()
@@ -404,15 +433,8 @@ public class PipesystemWindow : EditorWindow {
         if(selectedControlPoints.Count==2 && selectedControlPoints[0].connectedControlPoints.Contains(selectedControlPoints[1]))
         {
             //create the new controlPoint
-            ControlPoint newControlPoint;
-            Vector3 spawnPosition;
-
-            spawnPosition = (selectedControlPoints[0].transform.position + selectedControlPoints[1].transform.position)/2;
-
-            newControlPoint = Instantiate(prefabControlPoint, spawnPosition, Quaternion.identity, pipesystem.controlPointHolder.transform) as ControlPoint;
-            pipesystem.controlPoints.Add(newControlPoint);
-            newControlPoint.correspondingPipesystem = pipesystem;
-            newControlPoint.oldPosition = spawnPosition;
+            Vector3 spawnPosition = (selectedControlPoints[0].transform.position + selectedControlPoints[1].transform.position)/2;
+            ControlPoint newControlPoint = CreateControlPointBasic(spawnPosition);
 
             //delete the old pipeline
             foreach(ConnectionLine connectionLine in selectedControlPoints[0].connectionLines)
@@ -463,10 +485,7 @@ public class PipesystemWindow : EditorWindow {
             DeleteControlPoint();
 
             //create new controlPoint and connections
-            newControlPoint = Instantiate(prefabControlPoint, newPosition, Quaternion.identity, pipesystem.controlPointHolder.transform) as ControlPoint;
-            pipesystem.controlPoints.Add(newControlPoint);
-            newControlPoint.correspondingPipesystem = pipesystem;
-            newControlPoint.oldPosition = newPosition;
+            newControlPoint = CreateControlPointBasic(newPosition);
 
             for(int i = 0; i < newConnecteControlPoints.Count; i++)
             {
