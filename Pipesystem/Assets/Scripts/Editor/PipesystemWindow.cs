@@ -341,7 +341,7 @@ public class PipesystemWindow : EditorWindow {
         ControlPoint newControlPoint = null;
 
         //if there is not already a controlPoint spawn one
-        if (pipesystem.controlPoints.Count == 0)
+        if (pipesystem.controlPoints.Count == 0 && selectedSnapPoint == null)
         {
             spawnPosition = pipeSystemObject.transform.position;
             newControlPoint = CreateControlPointBasic(spawnPosition);
@@ -351,9 +351,15 @@ public class PipesystemWindow : EditorWindow {
         }
         else if (selectedControlPoints.Count == 0)
         {
-
-            Debug.Log("No controlPoint selected");
-            return;
+            if(selectedSnapPoint != null)
+            {
+                ControlPoint newSnapPoint= CreateSnapPointBasic();
+                newControlPoint = CreateControlPointBasic(selectedSnapPoint.transform.position);
+                CreateConnectionLine(newSnapPoint, newControlPoint);
+                Selection.activeObject = newControlPoint;
+            }
+            else
+                Debug.Log("No controlPoint selected");
         }
         else
         {
@@ -395,20 +401,29 @@ public class PipesystemWindow : EditorWindow {
         return newControlPoint;
     }
 
+    ControlPoint CreateSnapPointBasic()
+    {
+        ControlPoint newControlPoint;
+
+        newControlPoint = CreateControlPointBasic(selectedSnapPoint.transform.position);
+        newControlPoint.snapPoint = selectedSnapPoint;
+        selectedSnapPoint.connectedControlPoint = newControlPoint;
+
+        return newControlPoint;
+    }
+
     public void ConnectControlPoints()
     {
         //if two controlPoints are selecetd and not already connected
         if(selectedControlPoints.Count == 2 && !selectedControlPoints[0].connectedControlPoints.Contains(selectedControlPoints[1]))
             CreateConnectionLine(selectedControlPoints[0], selectedControlPoints[1]);
 
+        //if open snapPoint and 1 controlPoint are selected
         if(selectedControlPoints.Count==1 && selectedSnapPoint!=null)
         {
-            ControlPoint newControlPoint = CreateControlPointBasic(selectedSnapPoint.transform.position);
+            ControlPoint newControlPoint = CreateSnapPointBasic();
             CreateConnectionLine(selectedControlPoints[0], newControlPoint);
-            selectedSnapPoint.isConnected = true;
         }
-
-
     }
 
     public void DeleteConnectionBetweenControlPoints()
@@ -462,6 +477,10 @@ public class PipesystemWindow : EditorWindow {
         //Deletes the two selected controlpoints and creates a new one between them with all their connections
         if(selectedControlPoints.Count == 2)
         {
+            foreach (ControlPoint controlPoint in selectedControlPoints)
+                if (controlPoint.snapPoint != null)
+                    return;
+
             Vector3 newPosition = (selectedControlPoints[0].transform.position + selectedControlPoints[1].transform.position)/2;
             ControlPoint newControlPoint;
 

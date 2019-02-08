@@ -8,7 +8,7 @@ public class SnapPointInspector : Editor
 {
     private string[] pathStyleArray;
     private PipeStyle[] styleArray;
-    private bool[] boolArray;
+    private bool[] connectabilityArray;
     SnapPoint snapPoint;
 
     public override void OnInspectorGUI()
@@ -17,7 +17,7 @@ public class SnapPointInspector : Editor
         for (int i = 0; i < styleArray.Length; i++)
         {
             GUILayout.BeginHorizontal();
-            boolArray[i] = GUILayout.Toggle(boolArray[i],"");
+            connectabilityArray[i] = GUILayout.Toggle(connectabilityArray[i],"");
             GUILayout.Label(styleArray[i].name);
             GUILayout.EndHorizontal();
         }
@@ -25,7 +25,7 @@ public class SnapPointInspector : Editor
         snapPoint.connectablePipestyles.Clear();
         for (int i = 0; i < styleArray.Length; i++)
         {
-            if (boolArray[i] == true)
+            if (connectabilityArray[i] == true)
                 snapPoint.connectablePipestyles.Add(styleArray[i]);
         }
     }
@@ -49,12 +49,12 @@ public class SnapPointInspector : Editor
             styleArray[i] = (PipeStyle)AssetDatabase.LoadAssetAtPath(fullPath, typeof(PipeStyle));
         }
 
-        boolArray = new bool[styleArray.Length];
+        connectabilityArray = new bool[styleArray.Length];
 
         for (int i = 0; i < styleArray.Length; i++)
         {
             if (snapPoint.connectablePipestyles.Contains(styleArray[i]))
-                boolArray[i] = true;
+                connectabilityArray[i] = true;
         }
     }
 }

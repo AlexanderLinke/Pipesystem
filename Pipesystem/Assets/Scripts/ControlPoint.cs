@@ -9,6 +9,8 @@ public class ControlPoint : MonoBehaviour {
 
     public bool isSelectedControlPoint;
 
+    public SnapPoint snapPoint;
+
     public Pipesystem correspondingPipesystem;
 
     public Vector3 oldPosition;
@@ -31,7 +33,6 @@ public class ControlPoint : MonoBehaviour {
             }
             else
             {
-                Debug.Log("bob");
                 Gizmos.color = correspondingPipesystem.gizmoColors[2];
                 Gizmos.DrawWireSphere(transform.position, gizmoSize);
 

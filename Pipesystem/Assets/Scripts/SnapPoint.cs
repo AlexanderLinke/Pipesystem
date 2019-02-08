@@ -5,17 +5,17 @@ using UnityEngine;
 
 public class SnapPoint : MonoBehaviour {
 
-    public bool isConnected;
+    public ControlPoint connectedControlPoint;
 
     public List<PipeStyle> connectablePipestyles;
 
     public float gizmoSize = 1;
 
-    private Color32 hiddenColor = new Color32(0, 0, 0, 0);
+    private Color32 hiddenColor = new Color32(0, 0, 0, 100);
 
     void OnDrawGizmos()
     {
-        if(!isConnected)
+        if(connectedControlPoint == null)
         {
             if(PipesystemManager.activePipesystem!=null && connectablePipestyles.Contains(PipesystemManager.activePipesystem.pipeStyle))
             {
