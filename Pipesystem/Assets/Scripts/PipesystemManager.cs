@@ -5,8 +5,5 @@ using UnityEngine;
 public class PipesystemManager : MonoBehaviour {
 
     public static Pipesystem activePipesystem;
-
-
-    
 }
 

@@ -25,7 +25,8 @@ public class PipesystemWindow : EditorWindow {
     private bool otherSelection;
     private SnapPoint selectedSnapPoint;
 
-    private bool forcePipeUpdate;
+    //private bool forcePipeUpdate;
+    public List<ControlPoint> controlPointsToUpdate;
 
     [MenuItem("Window/PipeSystem")]
     public static void ShowWindow()
@@ -109,7 +110,14 @@ public class PipesystemWindow : EditorWindow {
 
     void Update()
     {
-        UpdatePipes();
+        if(pipesystem != null)
+        {
+            UpdatePipes();
+
+            //keeps snapPoints in place
+            if (selectedSnapPoint!=null &&selectedSnapPoint.isAnchord && selectedSnapPoint.position != selectedSnapPoint.transform.localPosition)
+                selectedSnapPoint.transform.localPosition = selectedSnapPoint.position;
+        }
     }
 
     public void OnEnable()
@@ -171,14 +179,28 @@ public class PipesystemWindow : EditorWindow {
             return;
 
         //SnapPoint
+        if(selectedSnapPoint != null)
+        {
+            selectedSnapPoint.isSelected = false;
+            selectedSnapPoint = null;
+        }
+
         foreach(Object obj in Selection.objects)
         {
-            GameObject go = (GameObject)obj;
-            if (go != null)
+
+            if (obj.GetType()==(typeof(GameObject)))
             {
+                GameObject go = (GameObject)obj;
                 SnapPoint snapPoint = go.GetComponent<SnapPoint>();
-                if (snapPoint != null)
+
+
+                if (snapPoint != null && snapPoint.connectedControlPoint == null)
+                {
+                    if (selectedSnapPoint != null)
+                        selectedSnapPoint.isSelected = false;
                     selectedSnapPoint = snapPoint;
+                    snapPoint.isSelected = true;
+                }
             }
         }
 
@@ -232,11 +254,23 @@ public class PipesystemWindow : EditorWindow {
                     controlPoint.isSelectedControlPoint = true;
                 }
             }
-
-            Object[] newSelection = new Object[selectedControlPoints.Count];
-            for (int i = 0; i < selectedControlPoints.Count; i++)
+            //set the selection
+            Object[] newSelection;
+            if (selectedSnapPoint!=null)
             {
-                newSelection[i] = selectedControlPoints[i].gameObject;
+                newSelection = new Object[selectedControlPoints.Count + 1];
+
+                for (int i = 0; i < selectedControlPoints.Count; i++)
+                    newSelection[i] = selectedControlPoints[i].gameObject;
+
+                newSelection[selectedControlPoints.Count] = selectedSnapPoint.gameObject;
+            }
+            else
+            {
+                newSelection = new Object[selectedControlPoints.Count];
+
+                for (int i = 0; i < selectedControlPoints.Count; i++)
+                    newSelection[i] = selectedControlPoints[i].gameObject;
             }
 
             Selection.objects = newSelection;
@@ -314,7 +348,6 @@ public class PipesystemWindow : EditorWindow {
 
                 RemoveMissingObjectsFromList();
                 RenameControlPoints();
-                forcePipeUpdate = true;
             }
         }
         else
@@ -436,7 +469,6 @@ public class PipesystemWindow : EditorWindow {
                 if(selectedControlPoints[1].connectionLines.Contains(connectionLine))
                 {
                     DeleteConnectionLine(connectionLine);
-                    forcePipeUpdate = true;
                     break;
                 }
             }
@@ -601,7 +633,7 @@ public class PipesystemWindow : EditorWindow {
                             controlPointsToDelete.Add(controlPoint);
 
                             newSelectedControlPoint[0] = newStartControlPoint.gameObject;
-                            forcePipeUpdate = true;
+                            controlPointsToUpdate.Add(newStartControlPoint);
                         }
                         break;
                     default:
@@ -667,7 +699,7 @@ public class PipesystemWindow : EditorWindow {
         {
             PipeStyleWindow pipeStyle = GetWindow<PipeStyleWindow>("Pipe Style");
             pipeStyle.usedStyle = pipesystem.pipeStyle;
-            pipeStyle.pipesystemObject = pipeSystemObject;
+            pipeStyle.pipesystem = pipesystem;
         }
     }
 
@@ -690,169 +722,177 @@ public class PipesystemWindow : EditorWindow {
         controlPoint_1.connectionLines.Add(newConnectionLine);
         controlPoint_2.connectionLines.Add(newConnectionLine);
 
-        forcePipeUpdate = true;
+        controlPointsToUpdate.Add(controlPoint_1);
     }
 
     public void UpdatePipes()
     {
-        //if one of the selected controlPoints has been moved or forcePipeUpdate has been called, update all their connectionLines
-        foreach (ControlPoint controlPoint in selectedControlPoints)
+        foreach (ControlPoint controlPoint in pipesystem.controlPoints)
         {
-            if (controlPoint.oldPosition != controlPoint.transform.position || forcePipeUpdate)
+            if(controlPoint.snapPoint!=null && controlPoint.snapPoint.transform.position != controlPoint.transform.position)
+                    controlPoint.transform.position = controlPoint.snapPoint.transform.position;
+
+            if (controlPoint.oldPosition != controlPoint.transform.position)
             {
-                foreach (ConnectionLine connectionLine in controlPoint.connectionLines)
+                controlPointsToUpdate.Add(controlPoint);
+                controlPoint.oldPosition = controlPoint.transform.position;
+            }
+        }
+
+        foreach (ControlPoint controlPoint in controlPointsToUpdate)
+        {
+            foreach (ConnectionLine connectionLine in controlPoint.connectionLines)
+            {
+                //setup variables
+                float distance = Vector3.Distance(connectionLine.startControlPoint.transform.position, connectionLine.endControlPoint.transform.position);
+
+                controlPoint.oldPosition = controlPoint.transform.position;
+                connectionLine.distance = distance;
+
+                Vector3 newPointPosition = controlPoint.transform.position;
+                Vector3 startPosition = connectionLine.startControlPoint.transform.position;
+                Vector3 endPosition = connectionLine.endControlPoint.transform.position;
+
+                int segmentCount = (int)(distance / pipesystem.segmentLength);
+
+                //add new segments
+                while (connectionLine.segments.Count < segmentCount)
                 {
-                    //setup variables
-                    float distance = Vector3.Distance(connectionLine.startControlPoint.transform.position, connectionLine.endControlPoint.transform.position);
+                    int randomSegmentPrefabIndex = 0;
 
-                    controlPoint.oldPosition = controlPoint.transform.position;
-                    connectionLine.distance = distance;
-
-                    Vector3 newPointPosition = controlPoint.transform.position;
-                    Vector3 startPosition = connectionLine.startControlPoint.transform.position;
-                    Vector3 endPosition = connectionLine.endControlPoint.transform.position;
-
-                    int segmentCount = (int)(distance / pipesystem.segmentLength);
-
-                    //add new segments
-                    while (connectionLine.segments.Count < segmentCount)
+                    //if segmentPrefabs contains more then 1, get one random based on their probability
+                    if (pipesystem.segmentProbability.Count > 1)
                     {
-                        int randomSegmentPrefabIndex = 0;
+                        int randomNumber = Random.Range(0, 100);
+                        int index = 0;
 
-                        //if segmentPrefabs contains more then 1, get one random based on their probability
-                        if (pipesystem.segmentProbability.Count > 1)
+                        while (randomNumber >= 0 && index < pipesystem.segmentProbability.Count)
+                        {
+                            randomNumber -= pipesystem.segmentProbability[index];
+
+                            if (randomNumber < 0)
+                            {
+                                randomSegmentPrefabIndex = index;
+                            }
+                            else
+                                index++;
+                        }
+                    }
+                    Segment newSegment = Instantiate(prefabSegment, connectionLine.SegmentHolder.transform);
+
+                    GameObject newSegmentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.segmentPrefab[randomSegmentPrefabIndex]);
+                    newSegmentPrefab.transform.parent = newSegment.gameObject.transform;
+
+                    newSegment.pipesystem = pipesystem;
+                    newSegment.length = pipesystem.segmentLength;
+                    newSegment.diameter = pipesystem.segmentDiameter;
+                    newSegment.segmentNumber = randomSegmentPrefabIndex;
+
+                    if (controlPoint == connectionLine.endControlPoint)
+                    {
+                        connectionLine.segments.Add(newSegment);
+                        newSegment.indexInLine = connectionLine.segments.Count;
+                    }
+                    else
+                    {
+                        connectionLine.segments.Insert(0, newSegment);
+                        foreach (Segment segment in connectionLine.segments)
+                            segment.indexInLine++;
+                    }
+                }
+
+                //remove segments
+                while (connectionLine.segments.Count > segmentCount && connectionLine.segments.Count > 0)
+                {
+                    if (controlPoint == connectionLine.endControlPoint)
+                    {
+                        DestroyImmediate(connectionLine.segments[connectionLine.segments.Count - 1].gameObject);
+                        connectionLine.segments.RemoveAt(connectionLine.segments.Count - 1);
+                    }
+                    else
+                    {
+                        DestroyImmediate(connectionLine.segments[0].gameObject);
+                        connectionLine.segments.RemoveAt(0);
+                        foreach (Segment segment in connectionLine.segments)
+                            segment.indexInLine--;
+                    }
+                }
+
+                //rename segments
+                foreach (Segment segment in connectionLine.segments)
+                    segment.name = "Segment " + segment.indexInLine;
+
+                //adjust segments position and rotation
+                for (int i = 1; i <= segmentCount; i++)
+                {
+                    Vector3 newSegmentPosition = ((((((segmentCount - i) * startPosition) + (i * endPosition)) / segmentCount) * ((2 * i) - 1)) + startPosition) / (2 * i);
+                    connectionLine.segments[i - 1].transform.position = newSegmentPosition;
+
+                    connectionLine.segments[i - 1].transform.rotation = Quaternion.LookRotation(newPointPosition - newSegmentPosition);
+                }
+
+
+                //adjust interjacent
+                if (pipesystem.interjacentPrefab.Count > 0)
+                {
+                    while (connectionLine.interjacents.Count < segmentCount - 1)
+                    {
+                        int randomInterjacentPrefabIndex = 0;
+
+                        //if interjacentPrefabs contains more then 1, get one random based on their probability
+                        if (pipesystem.interjacentProbability.Count > 1)
                         {
                             int randomNumber = Random.Range(0, 100);
                             int index = 0;
 
-                            while (randomNumber >= 0 && index < pipesystem.segmentProbability.Count)
+                            while (randomNumber >= 0 && index<pipesystem.interjacentProbability.Count)
                             {
-                                randomNumber -= pipesystem.segmentProbability[index];
+                                randomNumber -= pipesystem.interjacentProbability[index];
 
                                 if (randomNumber < 0)
                                 {
-                                    randomSegmentPrefabIndex = index;
+                                    randomInterjacentPrefabIndex = index;
                                 }
                                 else
                                     index++;
                             }
                         }
-                        Segment newSegment = Instantiate(prefabSegment, connectionLine.SegmentHolder.transform);
-
-                        GameObject newSegmentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.segmentPrefab[randomSegmentPrefabIndex]);
-                        newSegmentPrefab.transform.parent = newSegment.gameObject.transform;
-
-                        newSegment.pipesystem = pipesystem;
-                        newSegment.length = pipesystem.segmentLength;
-                        newSegment.diameter = pipesystem.segmentDiameter;
-                        newSegment.segmentNumber = randomSegmentPrefabIndex;
+                        GameObject newInterjacentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex]);
+                        newInterjacentPrefab.transform.parent = connectionLine.InterjacentHolder.transform;
 
                         if (controlPoint == connectionLine.endControlPoint)
-                        {
-                            connectionLine.segments.Add(newSegment);
-                            newSegment.indexInLine = connectionLine.segments.Count;
-                        }
+                            connectionLine.interjacents.Add(newInterjacentPrefab);
                         else
-                        {
-                            connectionLine.segments.Insert(0, newSegment);
-                            foreach (Segment segment in connectionLine.segments)
-                                segment.indexInLine++;
-                        }
+                            connectionLine.interjacents.Insert(0, newInterjacentPrefab);
                     }
 
-                    //remove segments
-                    while (connectionLine.segments.Count > segmentCount && connectionLine.segments.Count > 0)
+                    //Remove Interjacents
+                    while (connectionLine.interjacents.Count >= segmentCount && connectionLine.interjacents.Count > 0)
                     {
                         if (controlPoint == connectionLine.endControlPoint)
                         {
-                            DestroyImmediate(connectionLine.segments[connectionLine.segments.Count - 1].gameObject);
-                            connectionLine.segments.RemoveAt(connectionLine.segments.Count - 1);
+                            DestroyImmediate(connectionLine.interjacents[connectionLine.interjacents.Count - 1].gameObject);
+                            connectionLine.interjacents.RemoveAt(connectionLine.interjacents.Count - 1);
                         }
                         else
                         {
-                            DestroyImmediate(connectionLine.segments[0].gameObject);
-                            connectionLine.segments.RemoveAt(0);
-                            foreach (Segment segment in connectionLine.segments)
-                                segment.indexInLine--;
+                            DestroyImmediate(connectionLine.interjacents[0].gameObject);
+                            connectionLine.interjacents.RemoveAt(0);
                         }
                     }
 
-                    //rename segments
-                    foreach (Segment segment in connectionLine.segments)
-                        segment.name = "Segment " + segment.indexInLine;
-
-                    //adjust segments position and rotation
-                    for (int i = 1; i <= segmentCount; i++)
+                    //adjust interjacent position and rotation
+                    for (int i = 1; i < segmentCount; i++)
                     {
-                        Vector3 newSegmentPosition = ((((((segmentCount - i) * startPosition) + (i * endPosition)) / segmentCount) * ((2 * i) - 1)) + startPosition) / (2 * i);
-                        connectionLine.segments[i - 1].transform.position = newSegmentPosition;
+                        Vector3 newInterjacentPosition = (((segmentCount - i) * startPosition) + (i * endPosition)) / segmentCount;
+                        connectionLine.interjacents[i - 1].transform.position = newInterjacentPosition;
 
-                        connectionLine.segments[i - 1].transform.rotation = Quaternion.LookRotation(newPointPosition - newSegmentPosition);
-                    }
-
-
-                    //adjust interjacent
-                    if (pipesystem.interjacentPrefab.Count > 0)
-                    {
-                        while (connectionLine.interjacents.Count < segmentCount - 1)
-                        {
-                            int randomInterjacentPrefabIndex = 0;
-
-                            //if interjacentPrefabs contains more then 1, get one random based on their probability
-                            if (pipesystem.interjacentProbability.Count > 1)
-                            {
-                                int randomNumber = Random.Range(0, 100);
-                                int index = 0;
-
-                                while (randomNumber >= 0 && index<pipesystem.interjacentProbability.Count)
-                                {
-                                    randomNumber -= pipesystem.interjacentProbability[index];
-
-                                    if (randomNumber < 0)
-                                    {
-                                        randomInterjacentPrefabIndex = index;
-                                    }
-                                    else
-                                        index++;
-                                }
-                            }
-                            GameObject newInterjacentPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.interjacentPrefab[randomInterjacentPrefabIndex]);
-                            newInterjacentPrefab.transform.parent = connectionLine.InterjacentHolder.transform;
-
-                            if (controlPoint == connectionLine.endControlPoint)
-                                connectionLine.interjacents.Add(newInterjacentPrefab);
-                            else
-                                connectionLine.interjacents.Insert(0, newInterjacentPrefab);
-                        }
-
-                        //Remove Interjacents
-                        while (connectionLine.interjacents.Count >= segmentCount && connectionLine.interjacents.Count > 0)
-                        {
-                            if (controlPoint == connectionLine.endControlPoint)
-                            {
-                                DestroyImmediate(connectionLine.interjacents[connectionLine.interjacents.Count - 1].gameObject);
-                                connectionLine.interjacents.RemoveAt(connectionLine.interjacents.Count - 1);
-                            }
-                            else
-                            {
-                                DestroyImmediate(connectionLine.interjacents[0].gameObject);
-                                connectionLine.interjacents.RemoveAt(0);
-                            }
-                        }
-
-                        //adjust interjacent position and rotation
-                        for (int i = 1; i < segmentCount; i++)
-                        {
-                            Vector3 newInterjacentPosition = (((segmentCount - i) * startPosition) + (i * endPosition)) / segmentCount;
-                            connectionLine.interjacents[i - 1].transform.position = newInterjacentPosition;
-
-                            connectionLine.interjacents[i - 1].transform.rotation = Quaternion.LookRotation(newPointPosition - newInterjacentPosition);
-                        }
+                        connectionLine.interjacents[i - 1].transform.rotation = Quaternion.LookRotation(newPointPosition - newInterjacentPosition);
                     }
                 }
             }
-            forcePipeUpdate = false;
         }
+        controlPointsToUpdate.Clear();
     }
 
     public void ChangeSegment(SceneView sceneView)

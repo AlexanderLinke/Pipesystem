@@ -13,7 +13,6 @@ public class SnapPointInspector : Editor
 
     public override void OnInspectorGUI()
     {
-
         for (int i = 0; i < styleArray.Length; i++)
         {
             GUILayout.BeginHorizontal();
@@ -28,11 +27,29 @@ public class SnapPointInspector : Editor
             if (connectabilityArray[i] == true)
                 snapPoint.connectablePipestyles.Add(styleArray[i]);
         }
+
+        GUILayout.BeginHorizontal();
+        EditorGUI.BeginChangeCheck();
+        snapPoint.isAnchord = GUILayout.Toggle(snapPoint.isAnchord,"Anchor Position");
+        if(EditorGUI.EndChangeCheck())
+        {
+            if (snapPoint.isAnchord)
+                snapPoint.position = snapPoint.transform.localPosition;
+        }
+        GUILayout.Label(snapPoint.position.ToString());
+        GUILayout.EndHorizontal();
+
+        
+
     }
 
     void OnEnable()
     {
         snapPoint = (SnapPoint)target;
+
+        if(snapPoint.connectablePipestyles==null)
+            snapPoint.connectablePipestyles = new List<PipeStyle>();
+
         GetAllPipestyls();
     }
 

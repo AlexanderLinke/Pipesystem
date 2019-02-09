@@ -5,28 +5,16 @@ using UnityEditor;
 public class PipeStyleWindow : EditorWindow
 {
     public PipeStyle usedStyle;
-    public GameObject pipesystemObject;
     public Pipesystem pipesystem;
-
-    public GameObject emptyPlaceholder;
 
     private string[] pathStyleArray;
     private PipeStyle[] styleArray;
-    private int positionStyleChoser = 0;
-    private int oldPositionStyleChoser = 1;
+    private int positionStyleChoser = -1;
     private string pipestyleDatapath;
     private string newPipestyleName;
 
-    private GameObject newGameObject;
-
-    private List<int> oldSegmentProbability;
-    private List<int> oldInterjacentProbability;
-
-    private int spareSegmentProbability;
-    private int spareInterjacentProbability;
-
-    private int segmentCount;
-    private int interjacentCount;
+    private PrefabCollector segmentPrefabCollector;
+    private PrefabCollector interjacentPrefabCollector;
 
     private int colorfieldWidth = 160;
 
@@ -100,13 +88,6 @@ public class PipeStyleWindow : EditorWindow
             showMaterialGroup = EditorGUILayout.Foldout(showMaterialGroup, "Matrial");
             if (showMaterialGroup)
                 MainMaterial();
-
-
-
-        }
-        else if (pipesystem == null && pipesystemObject != null)
-        {
-            pipesystem = pipesystemObject.GetComponent<Pipesystem>();
         }
     }
 
@@ -114,13 +95,17 @@ public class PipeStyleWindow : EditorWindow
     {
         GetAllPipestyls();
 
-        for (int i = 0; i < styleArray.Length; i++)
+        segmentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+        interjacentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+
+        if (pipesystem!=null)
         {
-            if (styleArray[i] == usedStyle)
-            {
-                positionStyleChoser = i;
-                break;
-            }
+            segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
+            segmentPrefabCollector.RevertChanges();
+            segmentPrefabCollector.SetupOldProbability();
+            interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
+            interjacentPrefabCollector.RevertChanges();
+            interjacentPrefabCollector.SetupOldProbability();
         }
     }
 
@@ -140,42 +125,47 @@ public class PipeStyleWindow : EditorWindow
 
     public void StyleChoser()
     {
+        //initial set
+        if(positionStyleChoser<0)
+        {
+            for (int i = 0; i < styleArray.Length; i++)
+            {
+                if (styleArray[i] == pipesystem.pipeStyle)
+                {
+                    positionStyleChoser = i;
+                    break;
+                }
+            }
+            segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
+            segmentPrefabCollector.RevertChanges();
+            segmentPrefabCollector.SetupOldProbability();
+
+            interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
+            interjacentPrefabCollector.RevertChanges();
+            interjacentPrefabCollector.SetupOldProbability();
+        }
+
         //if scrollbar is moved replace usedStyle
+        EditorGUI.BeginChangeCheck();
         positionStyleChoser = (int)GUILayout.HorizontalScrollbar(positionStyleChoser, 1, 0, styleArray.Length);
 
-        if (positionStyleChoser != oldPositionStyleChoser)
+        if(EditorGUI.EndChangeCheck())
         {
             usedStyle = styleArray[positionStyleChoser];
             pipesystem.pipeStyle = styleArray[positionStyleChoser];
 
-            oldSegmentProbability = new List<int>();
-            for (int i = 0; i < usedStyle.segmentProbability.Count; i++)
-            {
-                int temp = usedStyle.segmentProbability[i];
-                oldSegmentProbability.Add(temp);
-            }
+            segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
+            segmentPrefabCollector.RevertChanges();
+            segmentPrefabCollector.SetupOldProbability();
 
-            oldInterjacentProbability = new List<int>();
-            for(int i =0; i < usedStyle.interjacentProbability.Count; i++)
-            {
-                Debug.Log(i);
-                int temp = usedStyle.interjacentProbability[i];
-                oldInterjacentProbability.Add(temp);
-            }
-
-            RevertChanges();
+            interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
+            interjacentPrefabCollector.RevertChanges();
+            interjacentPrefabCollector.SetupOldProbability();
         }
-        oldPositionStyleChoser = positionStyleChoser;
     }
 
     public void Segment()
     {
-        Event e = Event.current;
-        segmentCount = pipesystem.segmentPrefab.Count;
-
-        if (pipesystem.segmentProbability.Count > 0)
-            CalculateSegmentProbability();
-
         //Segment properties
         GUILayout.BeginHorizontal();
         GUILayout.Label("Length:");
@@ -189,221 +179,27 @@ public class PipeStyleWindow : EditorWindow
 
         GUILayout.Label("Distance to ControlPoint:");
         GUILayout.BeginHorizontal();
-        pipesystem.distanceSegmentsControlPoint = GUILayout.HorizontalSlider(pipesystem.distanceSegmentsControlPoint,0,50);
+        pipesystem.distanceSegmentsControlPoint = GUILayout.HorizontalSlider(pipesystem.distanceSegmentsControlPoint, 0, 50);
         pipesystem.distanceSegmentsControlPoint = EditorGUILayout.FloatField(pipesystem.distanceSegmentsControlPoint);
         GUILayout.EndHorizontal();
 
         GUILayout.Space(10);
+
         //Spare segment probability
-        GUILayout.Label("Spare Segment Probabilty: " + spareSegmentProbability.ToString());
+        GUILayout.Label("Spare Segment Probabilty: " + segmentPrefabCollector.sparePrefabProbability.ToString());
 
-        //Update Segment UI
-        if (segmentCount != 0)
-        {
-            for (int i = 0; i < segmentCount; i++)
-            {
-                GUILayout.BeginHorizontal();
-
-                pipesystem.segmentPrefab[i] = (GameObject)EditorGUILayout.ObjectField(pipesystem.segmentPrefab[i], typeof(GameObject), false);
-                pipesystem.segmentProbability[i] = EditorGUILayout.IntSlider(pipesystem.segmentProbability[i], 0, 100);
-
-                if (GUILayout.Button("-", GUILayout.Width(20)))
-                {
-                    DeleteSegment(i);
-                    break;
-                }
-
-                GUILayout.EndHorizontal();
-            }
-        }
-
-        //Add Segment
-        Rect newArea = GUILayoutUtility.GetRect(10, 50);
-        GUI.Box(newArea, "Add new Segment");
-
-        switch (e.type)
-        {
-            case EventType.DragUpdated:
-            case EventType.DragPerform:
-
-                if (!newArea.Contains(e.mousePosition))
-                    break;
-
-                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-
-                if (e.type == EventType.DragPerform)
-                {
-                    DragAndDrop.AcceptDrag();
-
-                    foreach (GameObject draggedObject in DragAndDrop.objectReferences)
-                    {
-                        newGameObject = draggedObject;
-                        if (!newGameObject)
-                            continue;
-
-                        pipesystem.segmentPrefab.Add(newGameObject);
-                        pipesystem.segmentProbability.Add(spareSegmentProbability);
-                        oldSegmentProbability.Add(spareSegmentProbability);
-                    }
-                }
-                Event.current.Use();
-                break;
-        }
-
-        //Delete all
-        if (GUILayout.Button("Delete All"))
-        {
-            pipesystem.segmentPrefab.Clear();
-            pipesystem.segmentProbability.Clear();
-            oldSegmentProbability.Clear();
-        }
-    }
-
-    public void CalculateSegmentProbability()
-    {
-        spareSegmentProbability = 100;
-
-        //subtract all probabilities
-        for (int i = 0; i < pipesystem.segmentProbability.Count; i++)
-            spareSegmentProbability -= pipesystem.segmentProbability[i];
-
-        //if someone changes and sparesegmentProbability would fall below 0, stop
-        for (int i = 0; i < pipesystem.segmentProbability.Count; i++)
-        {
-            if (pipesystem.segmentProbability[i] != oldSegmentProbability[i])
-            {
-                if (spareSegmentProbability < 0)
-                {
-                    pipesystem.segmentProbability[i] -= spareSegmentProbability * (-1);
-                    spareSegmentProbability = 0;
-                }
-                oldSegmentProbability[i] = pipesystem.segmentProbability[i];
-            }
-        }
-    }
-
-    public void DeleteSegment(int position)
-    {
-        pipesystem.segmentPrefab.RemoveAt(position);
-        pipesystem.segmentProbability.RemoveAt(position);
-        oldSegmentProbability.RemoveAt(position);
-        CalculateSegmentProbability();
+        segmentPrefabCollector.PrefabList();
+        segmentPrefabCollector.DragNewArea();
     }
 
     public void Interjacent()
     {
-        Event e = Event.current;
-        interjacentCount = pipesystem.interjacentPrefab.Count;
-
-        if (interjacentCount > 0)
-            CalculateInterjacentProbability();
-
-        //Spare interjacent probability
-        GUILayout.Label("Spare interjacent Probabilty: " + spareInterjacentProbability.ToString());
-
-        //Update Interjacent UI
-        if (interjacentCount != 0)
-        {
-            for (int i = 0; i < interjacentCount; i++)
-            {
-                GUILayout.BeginHorizontal();
-
-                pipesystem.interjacentPrefab[i] = (GameObject)EditorGUILayout.ObjectField(pipesystem.interjacentPrefab[i], typeof(GameObject), false);
-                pipesystem.interjacentProbability[i] = EditorGUILayout.IntSlider(pipesystem.interjacentProbability[i], 0, 100);
-
-                if (GUILayout.Button("-", GUILayout.Width(20)))
-                {
-                    DeleteInterjacent(i);
-                    break;
-                }
-
-                GUILayout.EndHorizontal();
-            }
-        }
-
-        //Add Interjacent
-        Rect newArea = GUILayoutUtility.GetRect(10, 50);
-        GUI.Box(newArea, "Add new Interjacent");
-
-        switch (e.type)
-        {
-            case EventType.DragUpdated:
-            case EventType.DragPerform:
-
-                if (!newArea.Contains(e.mousePosition))
-                    break;
-
-                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-
-                if (e.type == EventType.DragPerform)
-                {
-                    DragAndDrop.AcceptDrag();
-
-                    foreach (GameObject draggedObject in DragAndDrop.objectReferences)
-                    {
-                        newGameObject = draggedObject;
-                        if (!newGameObject)
-                            continue;
-
-                        pipesystem.interjacentPrefab.Add(newGameObject);
-                        pipesystem.interjacentProbability.Add(spareInterjacentProbability);
-                        oldInterjacentProbability.Add(spareInterjacentProbability);
-                    }
-                }
-                Event.current.Use();
-                break;
-        }
-
-        //Delete all
-        if (GUILayout.Button("Delete All"))
-        {
-            pipesystem.interjacentPrefab.Clear();
-            pipesystem.interjacentProbability.Clear();
-            oldInterjacentProbability.Clear();
-        }
-    }
-
-    public void CalculateInterjacentProbability()
-    {
-        spareInterjacentProbability = 100;
-
-        //subtract all probabilities
-        for (int i = 0; i < pipesystem.interjacentProbability.Count; i++)
-        {
-            spareInterjacentProbability -= pipesystem.interjacentProbability[i];
-        }
-
-        //if someone changes and spareInterjacentProbability would fall below 0, stop
-        for (int i = 0; i < pipesystem.interjacentProbability.Count; i++)
-        {
-            if (pipesystem.interjacentProbability[i] != oldInterjacentProbability[i])
-            {
-                if (spareInterjacentProbability < 0)
-                {
-                    pipesystem.interjacentProbability[i] -= spareInterjacentProbability * (-1);
-                    spareInterjacentProbability = 0;
-                }
-                oldInterjacentProbability[i] = pipesystem.interjacentProbability[i];
-            }
-        }
-    }
-
-    public void DeleteInterjacent(int position)
-    {
-        pipesystem.interjacentPrefab.RemoveAt(position);
-        pipesystem.interjacentProbability.RemoveAt(position);
-        oldInterjacentProbability.RemoveAt(position);
-        CalculateInterjacentProbability();
+        interjacentPrefabCollector.PrefabList();
+        interjacentPrefabCollector.DragNewArea();
     }
 
     public void SavePipestyleAsNew()
     {
-        if (spareSegmentProbability > 0)
-        {
-            Debug.Log("spareSegmentProbability must be 0");
-            return;
-        }
-
         //create a new pipestyle instance with the current values
         PipeStyle newStyle = (PipeStyle)CreateInstance("PipeStyle");
 
@@ -413,6 +209,8 @@ public class PipeStyleWindow : EditorWindow
         newStyle.interjacentProbability = new List<int>();
         newStyle.gizmoColors = new List<Color32>();
 
+        segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, newStyle.segmentPrefab, newStyle.segmentProbability);
+        interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, newStyle.interjacentPrefab, newStyle.interjacentProbability);
         ApplyPipestyle(newStyle);
 
         //Get the path and place the new asset
@@ -430,6 +228,7 @@ public class PipeStyleWindow : EditorWindow
         GetAllPipestyls();
         newPipestyleName = string.Empty;
 
+
         for (int i = 0; i < styleArray.Length; i++)
         {
             if (styleArray[i] == usedStyle)
@@ -443,8 +242,6 @@ public class PipeStyleWindow : EditorWindow
 
     public void ApplyPipestyle(PipeStyle style)
     {
-        GameObject tempGo;
-        int tempInt = 0;
         Color32 tempColor = Color.red;
         float tempFloat;
         
@@ -459,54 +256,9 @@ public class PipeStyleWindow : EditorWindow
         tempFloat = pipesystem.distanceSegmentsControlPoint;
         style.distanceSegmentsControlPoint = tempFloat;
 
-        //fill segment count if to low
-        do
-        {
-            style.segmentPrefab.Add(emptyPlaceholder);
-            style.segmentProbability.Add(tempInt);
 
-        } while (style.segmentPrefab.Count < pipesystem.segmentPrefab.Count);
-
-        //reduce segement count if to high
-        while (style.segmentPrefab.Count > pipesystem.segmentPrefab.Count)
-        {
-            style.segmentPrefab.RemoveAt(style.segmentPrefab.Count - 1);
-            style.segmentProbability.RemoveAt(style.segmentProbability.Count - 1);
-        }
-
-        //replace segment prefabs
-        for (int i = 0; i < pipesystem.segmentPrefab.Count; i++)
-        {
-            tempGo = pipesystem.segmentPrefab[i];
-            style.segmentPrefab[i] = tempGo;
-
-            tempInt = pipesystem.segmentProbability[i];
-            style.segmentProbability[i] = tempInt;
-        }
-
-        //fill interjacent count
-        do
-        {
-            style.interjacentPrefab.Add(emptyPlaceholder);
-            style.interjacentProbability.Add(tempInt);
-        } while (style.interjacentPrefab.Count < pipesystem.interjacentPrefab.Count);
-
-        //reduce segment count
-        while (style.interjacentPrefab.Count > pipesystem.interjacentPrefab.Count)
-        {
-            style.interjacentPrefab.RemoveAt(style.interjacentPrefab.Count - 1);
-            style.interjacentProbability.RemoveAt(style.interjacentProbability.Count - 1);
-        }
-
-        //replace interjacent
-        for (int i = 0; i < pipesystem.interjacentPrefab.Count; i++)
-        {
-            tempGo = pipesystem.interjacentPrefab[i];
-            style.interjacentPrefab[i] = tempGo;
-
-            tempInt = pipesystem.interjacentProbability[i];
-            style.interjacentProbability[i] = tempInt;
-        }
+        segmentPrefabCollector.ApplyChanges();
+        interjacentPrefabCollector.ApplyChanges();
 
         //GizmoColors
         while (style.gizmoColors.Count < pipesystem.gizmoColors.Count)
@@ -531,61 +283,14 @@ public class PipeStyleWindow : EditorWindow
     public void RevertChanges()
     {
         //get the attached pipestyle and change all values to theirs
-        int tempInt = 0;
-        GameObject tempGo;
         Color32 tempColor;
 
         pipesystem.segmentLength = usedStyle.segmentLength;
         pipesystem.segmentDiameter = usedStyle.segmentDiameter;
         pipesystem.distanceSegmentsControlPoint = usedStyle.distanceSegmentsControlPoint;
 
-        //fill segment count if to low
-        while (pipesystem.segmentPrefab.Count < usedStyle.segmentPrefab.Count)
-        {
-            pipesystem.segmentPrefab.Add(usedStyle.segmentPrefab[0]);
-            pipesystem.segmentProbability.Add(tempInt);
-        }
-
-        //reduce segement count if to high
-        while (pipesystem.segmentPrefab.Count > usedStyle.segmentPrefab.Count)
-        {
-            pipesystem.segmentPrefab.RemoveAt(pipesystem.segmentPrefab.Count - 1);
-            pipesystem.segmentProbability.RemoveAt(pipesystem.segmentProbability.Count - 1);
-        }
-
-        //replace segments
-        for (int i = 0; i < pipesystem.segmentProbability.Count; i++)
-        {
-            tempGo = usedStyle.segmentPrefab[i];
-            pipesystem.segmentPrefab[i] = tempGo;
-
-            tempInt = usedStyle.segmentProbability[i];
-            pipesystem.segmentProbability[i] = tempInt;
-        }
-
-        //fill interjacent count
-        while (pipesystem.interjacentPrefab.Count < usedStyle.interjacentPrefab.Count)
-        {
-            pipesystem.interjacentPrefab.Add(usedStyle.interjacentPrefab[0]);
-            pipesystem.interjacentProbability.Add(tempInt);
-        }
-
-        //reduce interjacent count
-        while (pipesystem.interjacentPrefab.Count > usedStyle.interjacentPrefab.Count)
-        {
-            pipesystem.interjacentPrefab.RemoveAt(pipesystem.interjacentPrefab.Count - 1);
-            pipesystem.interjacentProbability.RemoveAt(pipesystem.interjacentProbability.Count - 1);
-        }
-
-        //interjacents
-        for (int i = 0; i < pipesystem.interjacentProbability.Count; i++)
-        {
-            tempGo = usedStyle.interjacentPrefab[i];
-            pipesystem.interjacentPrefab[i] = usedStyle.interjacentPrefab[i];
-
-            tempInt = usedStyle.interjacentProbability[i];
-            pipesystem.interjacentProbability[i] = usedStyle.interjacentProbability[i];
-        }
+        segmentPrefabCollector.RevertChanges();
+        interjacentPrefabCollector.RevertChanges();
 
         //gizmos
         for (int i = 0; i < pipesystem.gizmoColors.Count; i++)
@@ -602,11 +307,13 @@ public class PipeStyleWindow : EditorWindow
         AssetDatabase.DeleteAsset(AssetDatabase.GUIDToAssetPath(pathStyleArray[positionStyleChoser]));
 
         GetAllPipestyls();
+        StyleChoser();
     }
 
     public void RecalculateAll()
     {
-        //recalculate all pipes
+        foreach (ControlPoint controlPoint in pipesystem.controlPoints)
+            controlPoint.oldPosition.x += 1;
     }
 
     public void Gizmos()
