@@ -42,6 +42,8 @@ public class PipesystemWindow : EditorWindow {
         if (pipeSystemLinked)
         {
             PipesystemManager.activePipesystem = pipesystem;
+
+            GUILayout.Label("Control Points", EditorStyles.boldLabel);
             //new and insert
             GUILayout.BeginHorizontal();
 
@@ -53,8 +55,16 @@ public class PipesystemWindow : EditorWindow {
 
             GUILayout.EndHorizontal();
 
+            //Merge and Bevel
+            GUILayout.BeginHorizontal();
+
             if (GUILayout.Button("Merge"))
                 MergeControlPoints();
+
+            if (GUILayout.Button("Bevel"))
+                BevelControlPoints();
+
+            GUILayout.EndHorizontal();
 
             //connect and deconnect
             GUILayout.BeginHorizontal();
@@ -78,8 +88,23 @@ public class PipesystemWindow : EditorWindow {
 
             GUILayout.EndHorizontal();
 
+
+            //Snappoint
+            GUILayout.Space(10);
+            GUILayout.Label("Snappoint", EditorStyles.boldLabel);
+            GUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("New"))
+                CreateSnapPointHolder();
+
+            if (GUILayout.Button("Delete"))
+                DeleteSnapPointHolder();
+
+            GUILayout.EndHorizontal();
+
             //Selection
-            GUILayout.Label("Selection");
+            GUILayout.Space(10);
+            GUILayout.Label("Selection",EditorStyles.boldLabel);
 
             GUILayout.BeginHorizontal();
 
@@ -88,14 +113,16 @@ public class PipesystemWindow : EditorWindow {
 
             GUILayout.EndHorizontal();
 
-
+            //Pipesystem
+            GUILayout.Space(10);
+            GUILayout.Label("Pipesystem", EditorStyles.boldLabel);
             if (GUILayout.Button("Unlink Pipesystem"))
             {
                 UnlinkPipeSystem();
                 return;
             }
-
-            ManagePipestyle();
+            if (GUILayout.Button("Manage Pipestyle"))
+                ManagePipestyle();
         }
         else
         {
@@ -547,6 +574,11 @@ public class PipesystemWindow : EditorWindow {
         }
     }
 
+    public void BevelControlPoints()
+    {
+        //implement
+    }
+
     public void RenameControlPoints()
     {
         for (int i = 1; i <= pipesystem.controlPoints.Count; i++)
@@ -582,6 +614,28 @@ public class PipesystemWindow : EditorWindow {
         pipesystem.controlPoints.Clear();
         selectedControlPoints.Clear();
         Selection.activeObject = pipeSystemObject;
+    }
+
+    public void CreateSnapPointHolder()
+    {
+        if(selectedControlPoints.Count==1)
+        {
+            if(selectedControlPoints[0].snapPoint != null)
+            {
+                Debug.Log("Already connected to a SnapPoint");
+                return;
+            }
+
+            GameObject newSnapPointHolderPrefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.snappablePrefab[0]);
+            newSnapPointHolderPrefab.transform.parent = pipesystem.snapPointsHolder.transform;
+            newSnapPointHolderPrefab.transform.position = selectedControlPoints[0].transform.position;
+
+        }
+    }
+
+    public void DeleteSnapPointHolder()
+    {
+        //implement
     }
 
     public void RemoveMissingObjectsFromList()
@@ -695,12 +749,9 @@ public class PipesystemWindow : EditorWindow {
 
     public void ManagePipestyle()
     {
-        if (GUILayout.Button("Manage Pipestyle"))
-        {
-            PipeStyleWindow pipeStyle = GetWindow<PipeStyleWindow>("Pipe Style");
-            pipeStyle.usedStyle = pipesystem.pipeStyle;
-            pipeStyle.pipesystem = pipesystem;
-        }
+        PipeStyleWindow pipeStyle = GetWindow<PipeStyleWindow>("Pipe Style");
+        pipeStyle.usedStyle = pipesystem.pipeStyle;
+        pipeStyle.pipesystem = pipesystem;
     }
 
     public void CreateConnectionLine(ControlPoint controlPoint_1, ControlPoint controlPoint_2)

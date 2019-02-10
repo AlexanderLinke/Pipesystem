@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
+[SelectionBase]
 public class SnapPoint : MonoBehaviour {
 
     public ControlPoint connectedControlPoint;

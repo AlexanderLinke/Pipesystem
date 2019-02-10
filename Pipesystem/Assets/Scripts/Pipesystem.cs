@@ -9,6 +9,7 @@ public class Pipesystem : MonoBehaviour
 
     public GameObject controlPointHolder;
     public GameObject connectionLineHolder;
+    public GameObject snapPointsHolder;
 
     public float segmentLength;
     public float segmentDiameter;
