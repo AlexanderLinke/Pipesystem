@@ -15,6 +15,8 @@ public class PipeStyleWindow : EditorWindow
 
     private PrefabCollector segmentPrefabCollector;
     private PrefabCollector interjacentPrefabCollector;
+    private PrefabCollector endPointPrefabCollector;
+    private PrefabCollector snappablePrefabCollector;
 
     private int colorfieldWidth = 160;
 
@@ -28,6 +30,8 @@ public class PipeStyleWindow : EditorWindow
 
     private bool showSegmentGroup;
     private bool showInterjacentGroup;
+    private bool showEndPointGroup;
+    private bool showSnappableGroup;
     private bool showGizmoGroup;
     private bool showMaterialGroup;
 
@@ -53,14 +57,18 @@ public class PipeStyleWindow : EditorWindow
 
             GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+
             if (GUILayout.Button("Save for All"))
                 ApplyPipestyle(usedStyle);
 
-            GUILayout.BeginHorizontal();
 
             if (GUILayout.Button("Revert"))
                 RevertChanges();
 
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Delete"))
                 DeletePipestyle();
 
@@ -78,6 +86,16 @@ public class PipeStyleWindow : EditorWindow
             showInterjacentGroup = EditorGUILayout.Foldout(showInterjacentGroup, "Interjacents");
             if (showInterjacentGroup)
                 Interjacent();
+
+            //EndPoints
+            showEndPointGroup = EditorGUILayout.Foldout(showEndPointGroup, "Endpoints");
+            if (showEndPointGroup)
+                EndPoints();
+
+            //Snappable
+            showSnappableGroup = EditorGUILayout.Foldout(showSnappableGroup, "Snappable");
+            if (showSnappableGroup)
+                Snappable();
 
             //GizmoColors
             showGizmoGroup = EditorGUILayout.Foldout(showGizmoGroup, "Gizmo");
@@ -97,15 +115,26 @@ public class PipeStyleWindow : EditorWindow
 
         segmentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         interjacentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+        endPointPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+        snappablePrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
 
         if (pipesystem!=null)
         {
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
             segmentPrefabCollector.RevertChanges();
             segmentPrefabCollector.SetupOldProbability();
+
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.RevertChanges();
             interjacentPrefabCollector.SetupOldProbability();
+
+            endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
+            endPointPrefabCollector.RevertChanges();
+            endPointPrefabCollector.SetupOldProbability();
+
+            snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
+            snappablePrefabCollector.RevertChanges();
+            snappablePrefabCollector.SetupOldProbability();
         }
     }
 
@@ -143,6 +172,14 @@ public class PipeStyleWindow : EditorWindow
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.RevertChanges();
             interjacentPrefabCollector.SetupOldProbability();
+
+            endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
+            endPointPrefabCollector.RevertChanges();
+            endPointPrefabCollector.SetupOldProbability();
+
+            snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
+            snappablePrefabCollector.RevertChanges();
+            snappablePrefabCollector.SetupOldProbability();
         }
 
         //if scrollbar is moved replace usedStyle
@@ -161,6 +198,14 @@ public class PipeStyleWindow : EditorWindow
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.RevertChanges();
             interjacentPrefabCollector.SetupOldProbability();
+
+            endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
+            endPointPrefabCollector.RevertChanges();
+            endPointPrefabCollector.SetupOldProbability();
+
+            snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
+            snappablePrefabCollector.RevertChanges();
+            snappablePrefabCollector.SetupOldProbability();
         }
     }
 
@@ -198,6 +243,18 @@ public class PipeStyleWindow : EditorWindow
         interjacentPrefabCollector.DragNewArea();
     }
 
+    public void EndPoints()
+    {
+        endPointPrefabCollector.PrefabList();
+        endPointPrefabCollector.DragNewArea();
+    }
+
+    public void Snappable()
+    {
+        snappablePrefabCollector.PrefabList();
+        snappablePrefabCollector.DragNewArea();
+    }
+
     public void SavePipestyleAsNew()
     {
         //create a new pipestyle instance with the current values
@@ -211,6 +268,9 @@ public class PipeStyleWindow : EditorWindow
 
         segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, newStyle.segmentPrefab, newStyle.segmentProbability);
         interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, newStyle.interjacentPrefab, newStyle.interjacentProbability);
+        endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
+        snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
+
         ApplyPipestyle(newStyle);
 
         //Get the path and place the new asset
@@ -259,6 +319,8 @@ public class PipeStyleWindow : EditorWindow
 
         segmentPrefabCollector.ApplyChanges();
         interjacentPrefabCollector.ApplyChanges();
+        endPointPrefabCollector.ApplyChanges();
+        snappablePrefabCollector.ApplyChanges();
 
         //GizmoColors
         while (style.gizmoColors.Count < pipesystem.gizmoColors.Count)
@@ -291,6 +353,8 @@ public class PipeStyleWindow : EditorWindow
 
         segmentPrefabCollector.RevertChanges();
         interjacentPrefabCollector.RevertChanges();
+        endPointPrefabCollector.RevertChanges();
+        snappablePrefabCollector.RevertChanges();
 
         //gizmos
         for (int i = 0; i < pipesystem.gizmoColors.Count; i++)
@@ -318,18 +382,21 @@ public class PipeStyleWindow : EditorWindow
 
     public void Gizmos()
     {
-        GUILayout.BeginHorizontal();
-        GUILayout.Label("ControlPoint Size");
-        pipesystem.gizmoSizeControlPoints = GUILayout.HorizontalSlider(pipesystem.gizmoSizeControlPoints,0,10, GUILayout.Width(colorfieldWidth));
-        GUILayout.EndHorizontal();
+        //GUILayout.BeginHorizontal();
+        //GUILayout.Label("ControlPoint Size");
+        //pipesystem.gizmoSizeControlPoints = GUILayout.HorizontalSlider(pipesystem.gizmoSizeControlPoints,0,10, GUILayout.Width(colorfieldWidth));
+        //GUILayout.EndHorizontal();
 
-        if(pipesystem.gizmoSizeControlPoints!=oldGizmoSizeControlPoints)
-        {
-            foreach (ControlPoint controlPoint in pipesystem.controlPoints)
-                controlPoint.gizmoSize = pipesystem.gizmoSizeControlPoints;
+        //if(pipesystem.gizmoSizeControlPoints!=oldGizmoSizeControlPoints)
+        //{
+        //    foreach (ControlPoint controlPoint in pipesystem.controlPoints)
+        //        controlPoint.gizmoSize = pipesystem.gizmoSizeControlPoints;
 
-            oldGizmoSizeControlPoints = pipesystem.gizmoSizeControlPoints;
-        }
+        //    oldGizmoSizeControlPoints = pipesystem.gizmoSizeControlPoints;
+        //}
+
+        GUILayout.Space(10);
+        GUILayout.Label("Control Point", EditorStyles.boldLabel);
 
         GUILayout.BeginHorizontal();
         GUILayout.Label("Unselected Outer");
@@ -351,6 +418,8 @@ public class PipeStyleWindow : EditorWindow
         pipesystem.gizmoColors[3] = EditorGUILayout.ColorField(pipesystem.gizmoColors[3], GUILayout.Width(colorfieldWidth));
         GUILayout.EndHorizontal();
 
+        GUILayout.Space(10);
+
         GUILayout.BeginHorizontal();
         GUILayout.Label("Connection Line");
         pipesystem.gizmoColors[4] = EditorGUILayout.ColorField(pipesystem.gizmoColors[4], GUILayout.Width(colorfieldWidth));
@@ -359,6 +428,24 @@ public class PipeStyleWindow : EditorWindow
         GUILayout.BeginHorizontal();
         GUILayout.Label("Segment Hover");
         pipesystem.gizmoColors[5] = EditorGUILayout.ColorField(pipesystem.gizmoColors[5], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(10);
+        GUILayout.Label("Snap Point", EditorStyles.boldLabel);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Available");
+        pipesystem.gizmoColors[6] = EditorGUILayout.ColorField(pipesystem.gizmoColors[6], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Selected");
+        pipesystem.gizmoColors[7] = EditorGUILayout.ColorField(pipesystem.gizmoColors[7], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Unavailable");
+        pipesystem.gizmoColors[8] = EditorGUILayout.ColorField(pipesystem.gizmoColors[8], GUILayout.Width(colorfieldWidth));
         GUILayout.EndHorizontal();
     }
 

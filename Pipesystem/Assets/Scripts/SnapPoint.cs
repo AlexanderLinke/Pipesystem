@@ -16,30 +16,30 @@ public class SnapPoint : MonoBehaviour {
     public bool isAnchord;
     public Vector3 position;
 
-    private Color32 hiddenColor = new Color32(0, 0, 0, 100);
+    private Color32 hiddenColor = new Color32(0, 0, 0, 0);
 
 
     void OnDrawGizmos()
     {
-        if(connectedControlPoint == null)
+        if(connectedControlPoint == null) 
         {
-            if(PipesystemManager.activePipesystem!=null && connectablePipestyles.Contains(PipesystemManager.activePipesystem.pipeStyle))
+            if (PipesystemManager.activePipesystem != null)
             {
-                if (isSelected)
-                    Gizmos.color = Color.green;
+                if (connectablePipestyles.Contains(PipesystemManager.activePipesystem.pipeStyle))
+                {
+                    if (isSelected)
+                        Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[7];
+                    else
+                        Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[6];
+                }
                 else
-                    Gizmos.color = Color.yellow;
-
-                Gizmos.DrawSphere(transform.position, gizmoSize);
-                Gizmos.DrawWireSphere(transform.position, gizmoSize);
+                    Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[8];
             }
             else
-            {
-                //creates a sneaky collider for selection
                 Gizmos.color = hiddenColor;
-                Gizmos.DrawSphere(transform.position, gizmoSize);
-                Gizmos.DrawWireSphere(transform.position, gizmoSize);
-            }
+
+            Gizmos.DrawSphere(transform.position, gizmoSize);
+            Gizmos.DrawWireSphere(transform.position, gizmoSize);
         }
     }
 }

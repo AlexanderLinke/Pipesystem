@@ -158,7 +158,6 @@ public class PrefabCollector : Editor {
         int tempInt = 0;
         GameObject tempGo;
 
-
         //fill prefab count if to low
         do
         {
@@ -183,6 +182,5 @@ public class PrefabCollector : Editor {
             tempInt = pipesystemPrefabProbability[i];
             collectionPrefabProbability[i] = tempInt;
         }
-        Debug.Log(pipesystemPrefabs.Count);
     }
 }

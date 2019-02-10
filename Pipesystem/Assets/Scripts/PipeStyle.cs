@@ -16,6 +16,12 @@ public class PipeStyle : ScriptableObject
     public List<GameObject> interjacentPrefab;
     public List<int> interjacentProbability;
 
+    public List<GameObject> endPointPrefab;
+    public List<int> endPointProbability;
+
+    public List<GameObject> snappablePrefab;
+    public List<int> snappableProbability;
+
     public Material material;
 
     //Gizmo
