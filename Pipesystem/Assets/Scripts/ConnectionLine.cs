@@ -17,6 +17,9 @@ public class ConnectionLine : MonoBehaviour {
     public ControlPoint startControlPoint;
     public ControlPoint endControlPoint;
 
+    public GameObject startPosition;
+    public GameObject endPosition;
+
     void OnDrawGizmos()
     {
         if (correspondingPipesystem.isLinked)

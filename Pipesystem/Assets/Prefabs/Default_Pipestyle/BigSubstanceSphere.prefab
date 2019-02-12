@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 33690508719674642}
   - component: {fileID: 23255402691259218}
   - component: {fileID: 7468043450838703767}
+  - component: {fileID: 1161124233246000442}
   m_Layer: 0
   m_Name: BigSubstanceSphere
   m_TagString: Untagged
@@ -93,6 +94,20 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 10.268644
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1161124233246000442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1878670430745714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bb05dc4d7a98c64497357494884f6dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  snapPoints:
+  - {fileID: 5471210588180851155}
 --- !u!1001 &5366125183949540229
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -150,3 +165,15 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 5366125183949540229}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5471210588180851155 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 114256190203437654, guid: efef92f4e5a5ee84cad2f976b2a33f61,
+    type: 3}
+  m_PrefabInstance: {fileID: 5366125183949540229}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29d198a061af8954386c294ff19025d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
