@@ -7,14 +7,16 @@ public class ControlPoint : MonoBehaviour {
     public List<ControlPoint> connectedControlPoints;
     public List<ConnectionLine> connectionLines;
 
+    public int connectionCount;
+    public Vector3 oldPosition;
+
     public bool isSelectedControlPoint;
 
     public SnapPoint snapPoint;
 
+    public GameObject model;
+
     public Pipesystem correspondingPipesystem;
-
-    public Vector3 oldPosition;
-
     public int indexInPipesystem;
 
     public float gizmoSize;

@@ -6,17 +6,23 @@ public class Pipesystem : MonoBehaviour
 {
     public List<ControlPoint> controlPoints;
     public PipeStyle pipeStyle;
+    public bool isLinked;
+    public bool selectControlPointsOnly;
 
+    //ObjectHolder
     public GameObject controlPointHolder;
     public GameObject connectionLineHolder;
     public GameObject snapPointsHolder;
+    public GameObject controlPointModelHolder;
 
+    //segment
     public float segmentLength;
     public float segmentDiameter;
     public float distanceSegmentsControlPoint;
 
-    public bool isLinked;
-    public bool selectControlPointsOnly;
+    //interjacent
+    public bool interjacentAtConnectionPoint;
+    public bool interjacentAtEndPoint;
 
     //Prefabs with style
     public List<GameObject> segmentPrefab;

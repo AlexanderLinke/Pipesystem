@@ -121,19 +121,15 @@ public class PipeStyleWindow : EditorWindow
         if (pipesystem!=null)
         {
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
-            segmentPrefabCollector.RevertChanges();
             segmentPrefabCollector.SetupOldProbability();
 
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
-            interjacentPrefabCollector.RevertChanges();
             interjacentPrefabCollector.SetupOldProbability();
 
             endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
-            endPointPrefabCollector.RevertChanges();
             endPointPrefabCollector.SetupOldProbability();
 
             snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
-            snappablePrefabCollector.RevertChanges();
             snappablePrefabCollector.SetupOldProbability();
         }
     }
@@ -166,19 +162,15 @@ public class PipeStyleWindow : EditorWindow
                 }
             }
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
-            segmentPrefabCollector.RevertChanges();
             segmentPrefabCollector.SetupOldProbability();
 
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
-            interjacentPrefabCollector.RevertChanges();
             interjacentPrefabCollector.SetupOldProbability();
 
             endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
-            endPointPrefabCollector.RevertChanges();
             endPointPrefabCollector.SetupOldProbability();
 
             snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
-            snappablePrefabCollector.RevertChanges();
             snappablePrefabCollector.SetupOldProbability();
         }
 
@@ -264,6 +256,10 @@ public class PipeStyleWindow : EditorWindow
         newStyle.segmentProbability = new List<int>();
         newStyle.interjacentPrefab = new List<GameObject>();
         newStyle.interjacentProbability = new List<int>();
+        newStyle.endPointPrefab = new List<GameObject>();
+        newStyle.endPointProbability = new List<int>();
+        newStyle.snappablePrefab = new List<GameObject>();
+        newStyle.snappableProbability = new List<int>();
         newStyle.gizmoColors = new List<Color32>();
 
         segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, newStyle.segmentPrefab, newStyle.segmentProbability);
@@ -305,7 +301,7 @@ public class PipeStyleWindow : EditorWindow
         Color32 tempColor = Color.red;
         float tempFloat;
         
-        //Material tempMat = new Material(tempShader);
+        Material tempMat = new Material(Shader.Find("Diffuse"));
 
         tempFloat = pipesystem.segmentLength;
         style.segmentLength = tempFloat;
@@ -338,8 +334,8 @@ public class PipeStyleWindow : EditorWindow
         style.gizmoSizeControlPoints = tempFloat;
 
         //material
-        //tempMat = pipesystem.mainMaterial;
-        //style.material = tempMat;
+        tempMat = pipesystem.mainMaterial;
+        style.material = tempMat;
     }
 
     public void RevertChanges()

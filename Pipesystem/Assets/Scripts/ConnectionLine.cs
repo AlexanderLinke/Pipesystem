@@ -19,6 +19,7 @@ public class ConnectionLine : MonoBehaviour {
 
     public GameObject startPosition;
     public GameObject endPosition;
+    public GameObject segmentEndPosition;
 
     void OnDrawGizmos()
     {
