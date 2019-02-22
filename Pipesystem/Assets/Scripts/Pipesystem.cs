@@ -24,6 +24,9 @@ public class Pipesystem : MonoBehaviour
     public bool interjacentAtConnectionPoint;
     public bool interjacentAtEndPoint;
 
+    //ControlPoint
+    public int controlPointBendPoints;
+
     //Prefabs with style
     public List<GameObject> segmentPrefab;
     public List<int> segmentProbability;
@@ -36,6 +39,9 @@ public class Pipesystem : MonoBehaviour
 
     public List<GameObject> snappablePrefab;
     public List<int> snappableProbability;
+
+    public List<GameObject> controlPointPrefab;
+    public List<int> controlPointProbability;
 
     //Gizmos
     public List<Color32> gizmoColors;

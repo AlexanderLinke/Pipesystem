@@ -13,6 +13,9 @@ public class PipeStyle : ScriptableObject
     public bool interjacentAtConnectionPoint; 
     public bool interjacentAtEndPoint;
 
+    //ControlPoint
+    public int controlPointBendPoints;
+
     //prefabs
     public List<GameObject> segmentPrefab;
     public List<int> segmentProbability;
@@ -25,6 +28,9 @@ public class PipeStyle : ScriptableObject
 
     public List<GameObject> snappablePrefab;
     public List<int> snappableProbability;
+
+    public List<GameObject> controlPointPrefab;
+    public List<int> controlPointProbability;
 
     public Material material;
 

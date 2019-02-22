@@ -1109,15 +1109,14 @@ public class PipesystemWindow : EditorWindow {
     {
         GameObject controlPointModel;
 
-        if (controlPoint.connectionLines.Count == 0)
-        { 
-            if (controlPoint.connectionCount != controlPoint.connectionLines.Count)
-            {
-                DestroyImmediate(controlPoint.model);
-                controlPoint.connectionCount = controlPoint.connectionLines.Count;
-            }
+        //delete old if number has changed
+        if (controlPoint.connectionCount != controlPoint.connectionLines.Count)
+        {
+            DestroyImmediate(controlPoint.model);
+            controlPoint.connectionCount = controlPoint.connectionLines.Count;
         }
-        else if (controlPoint.connectionLines.Count == 1)
+
+        if (controlPoint.connectionLines.Count == 1)
         {
             if(controlPoint.connectionLines[0].distance> pipesystem.distanceSegmentsControlPoint*2)
             {
@@ -1127,9 +1126,10 @@ public class PipesystemWindow : EditorWindow {
                 else
                     newPosition = controlPoint.connectionLines[0].endPosition.transform.position;
 
-                if (controlPoint.connectionCount != 1)
+                //instantiate new 
+                if (controlPoint.model == null)
                 {
-                    int randomendPointPrefabIndex = 0;
+                    int randomEndPointPrefabIndex = 0;
 
                     if (pipesystem.endPointProbability.Count > 1)
                     {
@@ -1142,32 +1142,72 @@ public class PipesystemWindow : EditorWindow {
 
                             if (randomNumber <= 0)
                             {
-                                randomendPointPrefabIndex = index;
+                                randomEndPointPrefabIndex = index;
                             }
                             else
                                 index++;
                         }
                     }
-                    controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.endPointPrefab[randomendPointPrefabIndex]);
+                    controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.endPointPrefab[randomEndPointPrefabIndex]);
                     controlPointModel.transform.parent = pipesystem.controlPointModelHolder.transform;
-                    controlPoint.model = controlPointModel;
                     controlPoint.connectionCount = 1;
+                    controlPoint.model = controlPointModel;
                 }
-                else
-                    controlPointModel = controlPoint.model;
 
                 //adjust transform
-                controlPointModel.transform.position = newPosition;
-                controlPointModel.transform.rotation = Quaternion.LookRotation(controlPoint.transform.position - newPosition);
+                controlPoint.model.transform.position = newPosition;
+                controlPoint.model.transform.rotation = Quaternion.LookRotation(controlPoint.transform.position - newPosition);
             }
         }
-        else if(controlPoint.connectionLines.Count>1)
+        else if(controlPoint.connectionLines.Count == 2)
         {
-            if(controlPoint.connectionCount!=controlPoint.connectionLines.Count)
+            //setup start and end position
+            Vector3 startPosition;
+            Vector3 endPosition;
+
+            if (controlPoint.connectionLines[0].endControlPoint == controlPoint)
+                startPosition = controlPoint.connectionLines[0].endPosition.transform.position;
+            else
+                startPosition = controlPoint.connectionLines[0].startPosition.transform.position;
+
+            if (controlPoint.connectionLines[1].startControlPoint == controlPoint)
+                endPosition = controlPoint.connectionLines[1].startPosition.transform.position;
+            else
+                endPosition = controlPoint.connectionLines[1].endPosition.transform.position;
+
+            //instantiate new
+            if(controlPoint.model == null)
             {
-                DestroyImmediate(controlPoint.model);
-                controlPoint.connectionCount = controlPoint.connectionLines.Count;
+                int randomControlPointPrefabIndex = 0;
+
+                if (pipesystem.controlPointProbability.Count > 1)
+                {
+                    int randomNumber = Random.Range(0, 100);
+                    int index = 0;
+
+                    while (randomNumber >= 0 && index < pipesystem.controlPointProbability.Count)
+                    {
+                        randomNumber -= pipesystem.controlPointProbability[index];
+
+                        if (randomNumber <= 0)
+                        {
+                            randomControlPointPrefabIndex = index;
+                        }
+                        else
+                            index++;
+                    }
+                }
+                controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.controlPointPrefab[randomControlPointPrefabIndex]);
+                controlPointModel.transform.parent = pipesystem.controlPointModelHolder.transform;
+                controlPointModel.transform.position = controlPoint.transform.position;
+                controlPoint.model = controlPointModel;
             }
+            
+
+        }
+        else if(controlPoint.connectionLines.Count > 2)
+        {
+
         }
     }
 

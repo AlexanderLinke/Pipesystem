@@ -17,6 +17,7 @@ public class PipeStyleWindow : EditorWindow
     private PrefabCollector interjacentPrefabCollector;
     private PrefabCollector endPointPrefabCollector;
     private PrefabCollector snappablePrefabCollector;
+    private PrefabCollector controlPointPrefabCollector;
 
     private int colorfieldWidth = 160;
 
@@ -32,6 +33,7 @@ public class PipeStyleWindow : EditorWindow
     private bool showInterjacentGroup;
     private bool showEndPointGroup;
     private bool showSnappableGroup;
+    private bool showControlPointGroup;
     private bool showGizmoGroup;
     private bool showMaterialGroup;
 
@@ -97,6 +99,11 @@ public class PipeStyleWindow : EditorWindow
             if (showSnappableGroup)
                 Snappable();
 
+            //ControlPoint
+            showControlPointGroup = EditorGUILayout.Foldout(showControlPointGroup, "ControlPoint");
+            if (showControlPointGroup)
+                ControlPoint();
+
             //GizmoColors
             showGizmoGroup = EditorGUILayout.Foldout(showGizmoGroup, "Gizmo");
             if (showGizmoGroup)
@@ -117,6 +124,7 @@ public class PipeStyleWindow : EditorWindow
         interjacentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         endPointPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         snappablePrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+        controlPointPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
 
         if (pipesystem!=null)
         {
@@ -131,6 +139,9 @@ public class PipeStyleWindow : EditorWindow
 
             snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
             snappablePrefabCollector.SetupOldProbability();
+
+            controlPointPrefabCollector.Setup(pipesystem.controlPointPrefab, pipesystem.controlPointProbability, usedStyle.controlPointPrefab, usedStyle.controlPointProbability);
+            controlPointPrefabCollector.SetupOldProbability();
         }
     }
 
@@ -172,6 +183,9 @@ public class PipeStyleWindow : EditorWindow
 
             snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
             snappablePrefabCollector.SetupOldProbability();
+
+            controlPointPrefabCollector.Setup(pipesystem.controlPointPrefab, pipesystem.controlPointProbability, usedStyle.controlPointPrefab, usedStyle.controlPointProbability);
+            controlPointPrefabCollector.SetupOldProbability();
         }
 
         //if scrollbar is moved replace usedStyle
@@ -198,6 +212,10 @@ public class PipeStyleWindow : EditorWindow
             snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
             snappablePrefabCollector.RevertChanges();
             snappablePrefabCollector.SetupOldProbability();
+
+            controlPointPrefabCollector.Setup(pipesystem.controlPointPrefab, pipesystem.controlPointProbability, usedStyle.controlPointPrefab, usedStyle.controlPointProbability);
+            controlPointPrefabCollector.RevertChanges();
+            controlPointPrefabCollector.SetupOldProbability();
         }
     }
 
@@ -247,6 +265,17 @@ public class PipeStyleWindow : EditorWindow
         snappablePrefabCollector.DragNewArea();
     }
 
+    public void ControlPoint()
+    {
+        controlPointPrefabCollector.PrefabList();
+        controlPointPrefabCollector.DragNewArea();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("BendPoints: ");
+        pipesystem.controlPointBendPoints = EditorGUILayout.IntField(pipesystem.controlPointBendPoints);
+        GUILayout.EndHorizontal();
+    }
+
     public void SavePipestyleAsNew()
     {
         //create a new pipestyle instance with the current values
@@ -260,12 +289,16 @@ public class PipeStyleWindow : EditorWindow
         newStyle.endPointProbability = new List<int>();
         newStyle.snappablePrefab = new List<GameObject>();
         newStyle.snappableProbability = new List<int>();
+        newStyle.controlPointPrefab = new List<GameObject>();
+        newStyle.controlPointProbability = new List<int>();
         newStyle.gizmoColors = new List<Color32>();
 
         segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, newStyle.segmentPrefab, newStyle.segmentProbability);
         interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, newStyle.interjacentPrefab, newStyle.interjacentProbability);
         endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
         snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
+        controlPointPrefabCollector.Setup(pipesystem.controlPointPrefab, pipesystem.controlPointProbability, usedStyle.controlPointPrefab, usedStyle.controlPointProbability);
+
 
         ApplyPipestyle(newStyle);
 
@@ -300,6 +333,7 @@ public class PipeStyleWindow : EditorWindow
     {
         Color32 tempColor = Color.red;
         float tempFloat;
+        int tempInt;
         
         Material tempMat = new Material(Shader.Find("Diffuse"));
 
@@ -312,11 +346,14 @@ public class PipeStyleWindow : EditorWindow
         tempFloat = pipesystem.distanceSegmentsControlPoint;
         style.distanceSegmentsControlPoint = tempFloat;
 
+        tempInt = pipesystem.controlPointBendPoints;
+        style.controlPointBendPoints = tempInt;
 
         segmentPrefabCollector.ApplyChanges();
         interjacentPrefabCollector.ApplyChanges();
         endPointPrefabCollector.ApplyChanges();
         snappablePrefabCollector.ApplyChanges();
+        controlPointPrefabCollector.ApplyChanges();
 
         //GizmoColors
         while (style.gizmoColors.Count < pipesystem.gizmoColors.Count)
@@ -346,11 +383,13 @@ public class PipeStyleWindow : EditorWindow
         pipesystem.segmentLength = usedStyle.segmentLength;
         pipesystem.segmentDiameter = usedStyle.segmentDiameter;
         pipesystem.distanceSegmentsControlPoint = usedStyle.distanceSegmentsControlPoint;
+        pipesystem.controlPointBendPoints = usedStyle.controlPointBendPoints;
 
         segmentPrefabCollector.RevertChanges();
         interjacentPrefabCollector.RevertChanges();
         endPointPrefabCollector.RevertChanges();
         snappablePrefabCollector.RevertChanges();
+        controlPointPrefabCollector.RevertChanges();
 
         //gizmos
         for (int i = 0; i < pipesystem.gizmoColors.Count; i++)
