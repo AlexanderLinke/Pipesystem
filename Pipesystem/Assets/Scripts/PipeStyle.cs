@@ -30,6 +30,7 @@ public class PipeStyle : ScriptableObject
     public List<int> snappableProbability;
 
     public List<GameObject> controlPointPrefab;
+    public List<GameObject> modifiedControlPointPrefab;
     public List<int> controlPointProbability;
 
     public Material material;

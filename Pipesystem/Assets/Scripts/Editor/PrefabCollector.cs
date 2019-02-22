@@ -13,6 +13,7 @@ public class PrefabCollector : Editor {
     private List<int> oldPrefabProbability;
 
     public int sparePrefabProbability;
+    public int deleteAt = -1;
 
     public GameObject emptyPlaceholder;
 
@@ -89,6 +90,7 @@ public class PrefabCollector : Editor {
         pipesystemPrefabProbability.RemoveAt(position);
         oldPrefabProbability.RemoveAt(position);
         CalculatePrefabProbability();
+        deleteAt = position;
     }
 
     public void CalculatePrefabProbability()

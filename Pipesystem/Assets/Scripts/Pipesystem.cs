@@ -41,6 +41,7 @@ public class Pipesystem : MonoBehaviour
     public List<int> snappableProbability;
 
     public List<GameObject> controlPointPrefab;
+    public List<GameObject> modifiedControlPointPrefab;
     public List<int> controlPointProbability;
 
     //Gizmos

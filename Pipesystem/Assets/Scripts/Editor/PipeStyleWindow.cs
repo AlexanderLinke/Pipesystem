@@ -270,10 +270,125 @@ public class PipeStyleWindow : EditorWindow
         controlPointPrefabCollector.PrefabList();
         controlPointPrefabCollector.DragNewArea();
 
+        EditorGUI.BeginChangeCheck();
         GUILayout.BeginHorizontal();
         GUILayout.Label("BendPoints: ");
         pipesystem.controlPointBendPoints = EditorGUILayout.IntField(pipesystem.controlPointBendPoints);
         GUILayout.EndHorizontal();
+
+        //recalculate all if controlPointBendPoints has been changed
+        if (EditorGUI.EndChangeCheck())
+        {
+            for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
+                AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedControlPointPrefab[i]));
+
+            pipesystem.modifiedControlPointPrefab.Clear();
+
+            for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
+                CreateControlPoint(i);
+        }
+
+        //delete modified if base is removed
+        if(controlPointPrefabCollector.deleteAt != -1)
+        {
+            AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedControlPointPrefab[controlPointPrefabCollector.deleteAt]));
+            pipesystem.modifiedControlPointPrefab.RemoveAt(controlPointPrefabCollector.deleteAt);
+            controlPointPrefabCollector.deleteAt = -1;
+        }
+
+        //add new
+        if (pipesystem.modifiedControlPointPrefab.Count < pipesystem.controlPointPrefab.Count)
+            CreateControlPoint(pipesystem.modifiedControlPointPrefab.Count);
+    }
+
+    public void CreateControlPoint(int index)
+    {
+        GameObject prefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.controlPointPrefab[index]);
+        SkinnedMeshRenderer meshRenderer;
+        Mesh mesh;
+
+        //get mesh
+        meshRenderer = prefab.AddComponent<SkinnedMeshRenderer>();
+        meshRenderer.sharedMesh = prefab.GetComponent<MeshFilter>().sharedMesh;
+        mesh = meshRenderer.sharedMesh;
+        mesh.boneWeights = null;
+        mesh.bindposes = null;
+
+        //get points
+
+        //weigth paint
+        BoneWeight[] weights = new BoneWeight[mesh.vertexCount];
+        Transform[] bones = new Transform[pipesystem.controlPointBendPoints];
+        Matrix4x4[] bindPoses = new Matrix4x4[pipesystem.controlPointBendPoints];
+        //bones
+
+        for (int i = 0; i < pipesystem.controlPointBendPoints; i++)
+        {
+            bones[i] = new GameObject().transform;
+            bones[i].name = i.ToString();
+            bones[i].localRotation = Quaternion.identity;
+
+            float zPosition = - pipesystem.distanceSegmentsControlPoint + ((pipesystem.distanceSegmentsControlPoint*2) / (pipesystem.controlPointBendPoints-1) * i);
+            bones[i].localPosition = new Vector3(0, 0, zPosition);
+
+            bindPoses[i] = bones[i].worldToLocalMatrix * prefab.transform.localToWorldMatrix;
+            bones[i].transform.parent = prefab.transform;
+        }
+
+        //weights
+        for (int i = 0; i < mesh.vertexCount; i++)
+        {
+            
+            float distanceToPoint = 0;
+            float distanceToClosestPoint = bones[0].transform.position.z*-2;
+            float distanceBetweenPoints = bones[1].transform.position.z - bones[0].transform.position.z;
+            int closestPoint = 0;
+            int secondClosestPoint = 0;
+            float weigthOfClosestPoint;
+
+            for (int j = 0; j < pipesystem.controlPointBendPoints; j++)
+            {
+                distanceToPoint = mesh.vertices[i].z - bones[j].transform.position.z;
+                
+                if (distanceToPoint < 0)
+                    distanceToPoint = distanceToPoint * -1;
+
+                if (distanceToPoint <= distanceToClosestPoint)
+                {
+                    secondClosestPoint = closestPoint;
+                    closestPoint = j;
+                    distanceToClosestPoint = distanceToPoint;
+                } 
+            }
+            
+            float bob = bones[closestPoint].transform.position.z-mesh.vertices[i].z;
+            Debug.Log("distance "+bob);
+
+
+            weigthOfClosestPoint = (distanceBetweenPoints - (bones[closestPoint].transform.position.z-mesh.vertices[i].z)) / distanceBetweenPoints;
+            Debug.Log(weigthOfClosestPoint);
+
+            weights[i].boneIndex0 = closestPoint;
+            weights[i].weight0 = weigthOfClosestPoint;
+
+            weights[i].boneIndex1 = secondClosestPoint;
+            weights[i].weight1 = 1-weigthOfClosestPoint;
+            
+        }
+
+        
+
+        meshRenderer.bones = bones;
+        mesh.bindposes = bindPoses;
+        mesh.boneWeights = weights;
+
+        //save
+        string datapath = AssetDatabase.GetAssetPath(pipesystem.controlPointPrefab[index]);
+        datapath = datapath.Replace(pipesystem.controlPointPrefab[index].name + ".prefab", string.Empty);
+        datapath = datapath + pipesystem.controlPointPrefab[index].name + index + ".prefab";
+
+        pipesystem.modifiedControlPointPrefab.Add(PrefabUtility.SaveAsPrefabAsset(prefab, datapath));
+        DestroyImmediate(prefab);
     }
 
     public void SavePipestyleAsNew()
