@@ -4,6 +4,15 @@ using UnityEngine;
 
 public class PipesystemManager : MonoBehaviour {
 
-    public static Pipesystem activePipesystem;
+    public Pipesystem activePipesystem;
+
+    public List<Pipesystem> pipesystems;
+
+    void Update()
+    {
+        Debug.Log("hurensohn");
+
+    }
+
 }
 

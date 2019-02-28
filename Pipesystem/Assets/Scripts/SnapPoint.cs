@@ -5,6 +5,8 @@ using UnityEngine;
 [SelectionBase]
 public class SnapPoint : MonoBehaviour {
 
+    public PipesystemManager manager;
+
     public ControlPoint connectedControlPoint;
 
     public bool isSelected;
@@ -21,19 +23,22 @@ public class SnapPoint : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        if(connectedControlPoint == null) 
+        if(manager == null)
+            manager = FindObjectOfType<PipesystemManager>();
+
+        if (connectedControlPoint == null) 
         {
-            if (PipesystemManager.activePipesystem != null)
+            if (manager != null)
             {
-                if (connectablePipestyles.Contains(PipesystemManager.activePipesystem.pipeStyle))
+                if (connectablePipestyles.Contains(manager.activePipesystem.pipeStyle))
                 {
                     if (isSelected)
-                        Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[7];
+                        Gizmos.color = manager.activePipesystem.gizmoColors[7];
                     else
-                        Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[6];
+                        Gizmos.color = manager.activePipesystem.gizmoColors[6];
                 }
                 else
-                    Gizmos.color = PipesystemManager.activePipesystem.gizmoColors[8];
+                    Gizmos.color = manager.activePipesystem.gizmoColors[8];
             }
             else
                 Gizmos.color = hiddenColor;

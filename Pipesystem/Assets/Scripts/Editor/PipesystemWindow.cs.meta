@@ -5,7 +5,7 @@ MonoImporter:
   serializedVersion: 2
   defaultReferences:
   - m_PersistentViewDataDictionary: {instanceID: 0}
-  - prefabPipeSystem: {fileID: 1169671550984766, guid: 967914918b3d50b40bc862987a5fbc7d,
+  - prefabPipeSystem: {fileID: 4393047667064442070, guid: 967914918b3d50b40bc862987a5fbc7d,
       type: 3}
   - prefabControlPoint: {fileID: 114725476273561490, guid: 97d79d3858524e447ac98ecedacf65b4,
       type: 3}

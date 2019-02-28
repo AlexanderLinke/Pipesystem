@@ -9,6 +9,7 @@ public class PipesystemWindow : EditorWindow {
     private bool pipeSystemLinked;
     private GameObject pipeSystemObject;
     private Pipesystem pipesystem;
+    private PipesystemManager manager;
 
     //prefabs
     public GameObject prefabPipeSystem;
@@ -43,7 +44,6 @@ public class PipesystemWindow : EditorWindow {
 
         if (pipeSystemLinked)
         {
-            PipesystemManager.activePipesystem = pipesystem;
 
             GUILayout.Label("Control Points", EditorStyles.boldLabel);
             //new and insert
@@ -138,6 +138,12 @@ public class PipesystemWindow : EditorWindow {
         }
         else
         {
+            if(manager.activePipesystem != null)
+            {
+                manager.activePipesystem.isLinked = false;
+                manager.activePipesystem = null;
+            }
+
             if (GUILayout.Button("New Pipesystem"))
                 CreatePipesystem();
 
@@ -151,6 +157,7 @@ public class PipesystemWindow : EditorWindow {
     {
         if(pipesystem != null)
         {
+            Debugger();
             UpdatePipes();
 
             //keeps snapPoints in place
@@ -165,7 +172,22 @@ public class PipesystemWindow : EditorWindow {
         SceneView.onSceneGUIDelegate += CheckSelection;
         SceneView.onSceneGUIDelegate += ChangeSegment;
 
-        PipesystemManager.activePipesystem = pipesystem;
+        if (manager == null)
+            manager = FindObjectOfType<PipesystemManager>();
+
+        foreach (Pipesystem pipesystem in manager.pipesystems)
+        {
+            if (pipesystem == null)
+            {
+                manager.pipesystems.Remove(pipesystem);
+                return;
+            }
+
+            if (pipesystem.controlPointPrefab.Count > 0)
+            {
+                RecalculateControlPointPrefabs(pipesystem);
+            }
+        }
     }
 
     public void OnDisable()
@@ -173,8 +195,6 @@ public class PipesystemWindow : EditorWindow {
         SceneView.onSceneGUIDelegate -= ShortcutUpdate;
         SceneView.onSceneGUIDelegate -= CheckSelection;
         SceneView.onSceneGUIDelegate -= ChangeSegment;
-        PipesystemManager.activePipesystem = null;
-
     }
 
     void ShortcutUpdate(SceneView sceneview)
@@ -209,6 +229,25 @@ public class PipesystemWindow : EditorWindow {
         {
             if (!mousePressed)
                 DeleteControlPoint();
+        }
+    }
+
+    void RecalculateControlPointPrefabs(Pipesystem pipesystem)
+    {
+        pipesystem.modifiedControlPointPrefab.Clear();
+        for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
+        {
+            string datapath;
+            datapath = AssetDatabase.GetAssetPath(pipesystem.controlPointPrefab[i]);
+            datapath = datapath.Replace(".prefab", "Modified" + ".prefab");
+            Object modifiedPrefab = AssetDatabase.LoadAssetAtPath(datapath, typeof(Object));
+
+            GameObject newModifiedPrefab = AutomaticWeightPainting.CalculateWeights(pipesystem, (GameObject)modifiedPrefab);
+
+            PrefabUtility.SaveAsPrefabAsset(newModifiedPrefab, datapath);
+            pipesystem.modifiedControlPointPrefab.Add((GameObject)modifiedPrefab);
+
+            DestroyImmediate(newModifiedPrefab);
         }
     }
 
@@ -349,11 +388,15 @@ public class PipesystemWindow : EditorWindow {
 
     public void CreatePipesystem()
     {
-        GameObject newPipeSystem;
-        newPipeSystem = Instantiate(prefabPipeSystem);
-        newPipeSystem.name = "Pipesystem";
+        GameObject newPipesystem;
+        newPipesystem = Instantiate(prefabPipeSystem);
+        newPipesystem.name = "Pipesystem";
+        Selection.activeGameObject = newPipesystem;
         LinkPipeSystem();
+        pipesystem.controlPoints = new List<ControlPoint>();
         CreateControlPoint();
+        manager.pipesystems.Add(newPipesystem.GetComponent<Pipesystem>());
+        manager.activePipesystem = newPipesystem.GetComponent<Pipesystem>();
     }
 
     public void LinkPipeSystem()
@@ -368,7 +411,9 @@ public class PipesystemWindow : EditorWindow {
 
         pipesystem = selectedObject.GetComponent<Pipesystem>();
         pipeSystemObject = selectedObject;
-        PipesystemManager.activePipesystem = pipesystem;
+
+        manager.activePipesystem = pipesystem;
+
         if (!(pipesystem == null || pipeSystemObject == null))
         {
             pipeSystemLinked = true;
@@ -399,7 +444,7 @@ public class PipesystemWindow : EditorWindow {
         pipesystem = null;
         pipeSystemObject = null;
         pipeSystemLinked = false;
-        PipesystemManager.activePipesystem = null;
+        manager.activePipesystem = null;
 
         foreach (ControlPoint controlPoint in selectedControlPoints)
             controlPoint.isSelectedControlPoint = false;
@@ -742,6 +787,7 @@ public class PipesystemWindow : EditorWindow {
 
         while (controlPointsToDelete.Count > 0)
         {
+            DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].model.gameObject);
             DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].gameObject);
             controlPointsToDelete.RemoveAt(controlPointsToDelete.Count - 1);
         }
@@ -1161,9 +1207,12 @@ public class PipesystemWindow : EditorWindow {
         }
         else if(controlPoint.connectionLines.Count == 2)
         {
+            Debug.Log("wupwup");
             //setup start and end position
             Vector3 startPosition;
             Vector3 endPosition;
+            int linePoints;
+            List<GameObject> linePointPositions;
 
             if (controlPoint.connectionLines[0].endControlPoint == controlPoint)
                 startPosition = controlPoint.connectionLines[0].endPosition.transform.position;
@@ -1197,12 +1246,27 @@ public class PipesystemWindow : EditorWindow {
                             index++;
                     }
                 }
-                controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.controlPointPrefab[randomControlPointPrefabIndex]);
+                controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.modifiedControlPointPrefab[randomControlPointPrefabIndex]);
                 controlPointModel.transform.parent = pipesystem.controlPointModelHolder.transform;
                 controlPointModel.transform.position = controlPoint.transform.position;
                 controlPoint.model = controlPointModel;
             }
-            
+
+
+            linePoints = controlPoint.model.transform.childCount;
+            linePointPositions = new List<GameObject>();
+
+            for (int i = 0; i < linePoints; i++)
+                linePointPositions.Add(controlPoint.model.transform.GetChild(i).gameObject);
+
+            linePointPositions[0].transform.position = startPosition;
+            linePointPositions[0].transform.rotation = Quaternion.LookRotation(controlPoint.transform.position);
+
+            Debug.Log(linePointPositions[linePointPositions.Count - 1]);
+
+            linePointPositions[linePointPositions.Count - 1].transform.position = endPosition;
+            linePointPositions[linePointPositions.Count - 1].transform.rotation = Quaternion.LookRotation(controlPoint.transform.position);
+
 
         }
         else if(controlPoint.connectionLines.Count > 2)
@@ -1243,6 +1307,24 @@ public class PipesystemWindow : EditorWindow {
                 currentHoverd.segmentNumber = currentSegment;
             }
             HandleUtility.AddDefaultControl(controlId);
+        }
+    }
+
+    public void Debugger()
+    {
+        SkinnedMeshRenderer meshRenderer = null;
+        Mesh mesh;
+        GameObject go;
+        go = Selection.activeGameObject;
+        if(go!=null)
+        {
+            meshRenderer = go.GetComponent<SkinnedMeshRenderer>();
+        }
+
+        if (meshRenderer != null)
+        {
+            mesh = meshRenderer.sharedMesh;
+            Debug.Log(mesh.bindposes.Length);
         }
     }
 }
