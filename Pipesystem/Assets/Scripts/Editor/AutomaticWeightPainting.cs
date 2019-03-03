@@ -71,7 +71,7 @@ public class AutomaticWeightPainting : Editor
             float distanceToClosestPoint = bones[0].transform.position.z * -2;
             float distanceBetweenPoints = bones[1].transform.position.z - bones[0].transform.position.z;
             int closestPoint = 0;
-            int secondClosestPoint = 0;
+            int secondClosestPoint = 1;
             float weigthOfClosestPoint;
 
             for (int j = 0; j < pipesystem.controlPointBendPoints; j++)

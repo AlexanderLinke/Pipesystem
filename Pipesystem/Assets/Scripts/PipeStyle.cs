@@ -15,6 +15,7 @@ public class PipeStyle : ScriptableObject
 
     //ControlPoint
     public int controlPointBendPoints;
+    public float controlPointCurveStrength;
 
     //prefabs
     public List<GameObject> segmentPrefab;

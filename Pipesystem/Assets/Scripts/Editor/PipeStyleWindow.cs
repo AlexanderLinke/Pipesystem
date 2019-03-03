@@ -279,17 +279,20 @@ public class PipeStyleWindow : EditorWindow
         //recalculate all if controlPointBendPoints has been changed
         if (EditorGUI.EndChangeCheck())
         {
-            //for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
-            //    AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedControlPointPrefab[i]));
+            for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
+                AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedControlPointPrefab[i]));
 
             pipesystem.modifiedControlPointPrefab.Clear();
 
             for (int i = 0; i < pipesystem.controlPointPrefab.Count; i++)
                 CreateControlPoint(i);
+
+            pipesystem.recalculateAll = true;
+
         }
 
         //delete modified if base is removed
-        if(controlPointPrefabCollector.deleteAt != -1)
+        if (controlPointPrefabCollector.deleteAt != -1)
         {
             AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedControlPointPrefab[controlPointPrefabCollector.deleteAt]));
             pipesystem.modifiedControlPointPrefab.RemoveAt(controlPointPrefabCollector.deleteAt);
@@ -299,6 +302,13 @@ public class PipeStyleWindow : EditorWindow
         //add new
         if (pipesystem.modifiedControlPointPrefab.Count < pipesystem.controlPointPrefab.Count)
             CreateControlPoint(pipesystem.modifiedControlPointPrefab.Count);
+
+
+        GUILayout.Label("CurveStrength:");
+        GUILayout.BeginHorizontal();
+        pipesystem.controlPointCurveStrength = GUILayout.HorizontalSlider(pipesystem.controlPointCurveStrength, 0, 1);
+        pipesystem.controlPointCurveStrength = EditorGUILayout.FloatField(pipesystem.controlPointCurveStrength);
+        GUILayout.EndHorizontal();
     }
 
     public void CreateControlPoint(int index)
@@ -360,12 +370,7 @@ public class PipeStyleWindow : EditorWindow
                 }
             }
 
-            float bob = bones[closestPoint].transform.position.z - mesh.vertices[i].z;
-            Debug.Log("distance " + bob);
-
-
             weigthOfClosestPoint = (distanceBetweenPoints - (bones[closestPoint].transform.position.z - mesh.vertices[i].z)) / distanceBetweenPoints;
-            Debug.Log(weigthOfClosestPoint);
 
             weights[i].boneIndex0 = closestPoint;
             weights[i].weight0 = weigthOfClosestPoint;
@@ -480,6 +485,9 @@ public class PipeStyleWindow : EditorWindow
         tempInt = pipesystem.controlPointBendPoints;
         style.controlPointBendPoints = tempInt;
 
+        tempFloat = pipesystem.controlPointCurveStrength;
+        style.controlPointCurveStrength = tempFloat;
+
         segmentPrefabCollector.ApplyChanges();
         interjacentPrefabCollector.ApplyChanges();
         endPointPrefabCollector.ApplyChanges();
@@ -515,6 +523,7 @@ public class PipeStyleWindow : EditorWindow
         pipesystem.segmentDiameter = usedStyle.segmentDiameter;
         pipesystem.distanceSegmentsControlPoint = usedStyle.distanceSegmentsControlPoint;
         pipesystem.controlPointBendPoints = usedStyle.controlPointBendPoints;
+        pipesystem.controlPointCurveStrength = usedStyle.controlPointCurveStrength;
 
         segmentPrefabCollector.RevertChanges();
         interjacentPrefabCollector.RevertChanges();
@@ -542,8 +551,7 @@ public class PipeStyleWindow : EditorWindow
 
     public void RecalculateAll()
     {
-        foreach (ControlPoint controlPoint in pipesystem.controlPoints)
-            controlPoint.oldPosition.x += 1;
+        pipesystem.recalculateAll = true;
     }
 
     public void Gizmos()

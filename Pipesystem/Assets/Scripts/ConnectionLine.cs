@@ -21,6 +21,14 @@ public class ConnectionLine : MonoBehaviour {
     public GameObject endPosition;
     public GameObject segmentEndPosition;
 
+    //Curved
+    public bool isCurved;
+    public GameObject startInfluencePoint;
+    public GameObject endInfluencePoint;
+
+    public Vector3[] positionsBendPoints;
+    public Vector3[] rotationsBendPoints;
+
     void OnDrawGizmos()
     {
         if (correspondingPipesystem.isLinked)

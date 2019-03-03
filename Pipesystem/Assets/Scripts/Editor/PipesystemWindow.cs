@@ -100,7 +100,6 @@ public class PipesystemWindow : EditorWindow {
 
             GUILayout.EndHorizontal();
 
-
             //Snappoint
             GUILayout.Space(10);
             GUILayout.Label("Snappoint", EditorStyles.boldLabel);
@@ -160,6 +159,9 @@ public class PipesystemWindow : EditorWindow {
             Debugger();
             UpdatePipes();
 
+            if (pipesystem.recalculateAll == true)
+                RecalculateAll();
+
             //keeps snapPoints in place
             if (selectedSnapPoint!=null &&selectedSnapPoint.isAnchord && selectedSnapPoint.position != selectedSnapPoint.transform.localPosition)
                 selectedSnapPoint.transform.localPosition = selectedSnapPoint.position;
@@ -183,10 +185,11 @@ public class PipesystemWindow : EditorWindow {
                 return;
             }
 
+            if(manager.activePipesystem==null)
+                pipesystem.isLinked = false;
+
             if (pipesystem.controlPointPrefab.Count > 0)
-            {
                 RecalculateControlPointPrefabs(pipesystem);
-            }
         }
     }
 
@@ -514,6 +517,13 @@ public class PipesystemWindow : EditorWindow {
         newControlPoint.correspondingPipesystem = pipesystem;
         newControlPoint.oldPosition = spawnPosition;
         newControlPoint.gizmoSize = pipesystem.gizmoSizeControlPoints;
+        newControlPoint.models = new List<GameObject>();
+        newControlPoint.modelConnectionPoints = new List<GameObject>();
+
+        GameObject newControlPointModelHolder = Instantiate(emptyGameObject, pipesystem.controlPointModelHolder.transform);
+        newControlPoint.modelHolder = newControlPointModelHolder;
+
+        
 
         return newControlPoint;
     }
@@ -644,6 +654,7 @@ public class PipesystemWindow : EditorWindow {
         {
             pipesystem.controlPoints[i - 1].name = "ControlPoint " + i;
             pipesystem.controlPoints[i - 1].indexInPipesystem = i;
+            pipesystem.controlPoints[i - 1].modelHolder.name = "ControlPointModel " + i;
         }
 
         foreach (ControlPoint controlPoint in pipesystem.controlPoints)
@@ -787,7 +798,10 @@ public class PipesystemWindow : EditorWindow {
 
         while (controlPointsToDelete.Count > 0)
         {
-            DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].model.gameObject);
+            while(controlPointsToDelete[controlPointsToDelete.Count - 1].models.Count > 0)
+                DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].models[0].gameObject);
+            controlPointsToDelete[controlPointsToDelete.Count - 1].models.Clear();
+
             DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].gameObject);
             controlPointsToDelete.RemoveAt(controlPointsToDelete.Count - 1);
         }
@@ -822,6 +836,9 @@ public class PipesystemWindow : EditorWindow {
         //Remove connections
         connectionLine.startControlPoint.connectedControlPoints.Remove(connectionLine.endControlPoint);
         connectionLine.endControlPoint.connectedControlPoints.Remove(connectionLine.startControlPoint);
+
+        connectionLine.startControlPoint.modelConnectionPoints.Remove(connectionLine.startPosition);
+        connectionLine.endControlPoint.modelConnectionPoints.Remove(connectionLine.endPosition);
 
         connectionLine.startControlPoint.connectionLines.Remove(connectionLine);
         connectionLine.endControlPoint.connectionLines.Remove(connectionLine);
@@ -859,6 +876,8 @@ public class PipesystemWindow : EditorWindow {
         controlPoint_2.connectedControlPoints.Add(controlPoint_1);
         controlPoint_1.connectionLines.Add(newConnectionLine);
         controlPoint_2.connectionLines.Add(newConnectionLine);
+        controlPoint_1.modelConnectionPoints.Add(newConnectionLine.startPosition);
+        controlPoint_2.modelConnectionPoints.Add(newConnectionLine.endPosition);
 
         controlPointsToUpdate.Add(controlPoint_1);
     }
@@ -919,6 +938,7 @@ public class PipesystemWindow : EditorWindow {
 
                 Vector3 newPointPosition = controlPoint.transform.position;
                 
+                //Update start position logic. Use controlpoint curve points
                 //setup startPosition
                 GameObject startPoint = connectionLine.startPosition;
                 if(connectionLine.endControlPoint.transform.position!=Vector3.zero)
@@ -1079,7 +1099,7 @@ public class PipesystemWindow : EditorWindow {
                             int randomNumber = Random.Range(0, 100);
                             int index = 0;
 
-                            while (randomNumber >= 0 && index<pipesystem.interjacentProbability.Count)
+                            while (randomNumber >= 0 && index < pipesystem.interjacentProbability.Count)
                             {
                                 randomNumber -= pipesystem.interjacentProbability[index];
 
@@ -1120,20 +1140,9 @@ public class PipesystemWindow : EditorWindow {
                     {
                         int number = i;
                         Vector3 newInterjacentPosition = Vector3.zero;
-                        //if (pipesystem.interjacentAtConnectionPoint && connectionLine.startControlPoint.connectedControlPoints.Count > 1)
-                        //{
-                        //    number++;
-                        //    Debug.Log("hure");
-                        //}
-                        //else if (pipesystem.interjacentAtEndPoint && connectionLine.startControlPoint.connectedControlPoints.Count == 1)
-                        //{
-                        //    number++;
-                        //    Debug.Log("hut");
-                        //}
-
 
                         //endscheck
-                        if (segmentCount>0)
+                        if (segmentCount > 0)
                             newInterjacentPosition = (((segmentCount - number) * startPosition) + (number * segmentEndPosition)) / segmentCount;
                         else
                             newInterjacentPosition = connectionLine.startPosition.transform.position;
@@ -1141,7 +1150,7 @@ public class PipesystemWindow : EditorWindow {
 
                         if (i == interjacentCount - 1)
                             newInterjacentPosition = connectionLine.endPosition.transform.position;
-    
+
                         connectionLine.interjacents[i].transform.position = newInterjacentPosition;
                         connectionLine.interjacents[i].transform.rotation = Quaternion.LookRotation(newPointPosition - newInterjacentPosition);
                     }
@@ -1158,13 +1167,18 @@ public class PipesystemWindow : EditorWindow {
         //delete old if number has changed
         if (controlPoint.connectionCount != controlPoint.connectionLines.Count)
         {
-            DestroyImmediate(controlPoint.model);
+            while (controlPoint.models.Count > 0)
+            {
+                DestroyImmediate(controlPoint.models[controlPoint.models.Count-1].gameObject);
+                controlPoint.models.RemoveAt(controlPoint.models.Count - 1);
+            }
+            controlPoint.models.Clear();
             controlPoint.connectionCount = controlPoint.connectionLines.Count;
         }
 
         if (controlPoint.connectionLines.Count == 1)
         {
-            if(controlPoint.connectionLines[0].distance> pipesystem.distanceSegmentsControlPoint*2)
+            if (controlPoint.connectionLines[0].distance > pipesystem.distanceSegmentsControlPoint * 2)
             {
                 Vector3 newPosition;
                 if (controlPoint.connectionLines[0].startControlPoint == controlPoint)
@@ -1173,7 +1187,7 @@ public class PipesystemWindow : EditorWindow {
                     newPosition = controlPoint.connectionLines[0].endPosition.transform.position;
 
                 //instantiate new 
-                if (controlPoint.model == null)
+                if (controlPoint.models.Count == 0)
                 {
                     int randomEndPointPrefabIndex = 0;
 
@@ -1195,37 +1209,22 @@ public class PipesystemWindow : EditorWindow {
                         }
                     }
                     controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.endPointPrefab[randomEndPointPrefabIndex]);
-                    controlPointModel.transform.parent = pipesystem.controlPointModelHolder.transform;
+                    controlPointModel.transform.parent = controlPoint.modelHolder.transform;
                     controlPoint.connectionCount = 1;
-                    controlPoint.model = controlPointModel;
+                    controlPoint.models.Add(controlPointModel);
                 }
 
                 //adjust transform
-                controlPoint.model.transform.position = newPosition;
-                controlPoint.model.transform.rotation = Quaternion.LookRotation(controlPoint.transform.position - newPosition);
+                controlPoint.models[0].transform.position = newPosition;
+                controlPoint.models[0].transform.rotation = Quaternion.LookRotation(controlPoint.transform.position - newPosition);
             }
         }
-        else if(controlPoint.connectionLines.Count == 2)
+        else if (controlPoint.connectionLines.Count > 1)
         {
-            Debug.Log("wupwup");
-            //setup start and end position
-            Vector3 startPosition;
-            Vector3 endPosition;
-            int linePoints;
-            List<GameObject> linePointPositions;
+            //bendModel
 
-            if (controlPoint.connectionLines[0].endControlPoint == controlPoint)
-                startPosition = controlPoint.connectionLines[0].endPosition.transform.position;
-            else
-                startPosition = controlPoint.connectionLines[0].startPosition.transform.position;
-
-            if (controlPoint.connectionLines[1].startControlPoint == controlPoint)
-                endPosition = controlPoint.connectionLines[1].startPosition.transform.position;
-            else
-                endPosition = controlPoint.connectionLines[1].endPosition.transform.position;
-
-            //instantiate new
-            if(controlPoint.model == null)
+            //instantiate new bendModel
+            if (controlPoint.models.Count == 0)
             {
                 int randomControlPointPrefabIndex = 0;
 
@@ -1247,31 +1246,94 @@ public class PipesystemWindow : EditorWindow {
                     }
                 }
                 controlPointModel = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.modifiedControlPointPrefab[randomControlPointPrefabIndex]);
-                controlPointModel.transform.parent = pipesystem.controlPointModelHolder.transform;
+                controlPointModel.transform.parent = controlPoint.modelHolder.transform;
                 controlPointModel.transform.position = controlPoint.transform.position;
-                controlPoint.model = controlPointModel;
+                controlPoint.models.Add(controlPointModel);
+
+                if(controlPoint.startCurveInfluencePoint==null)
+                {
+                    controlPoint.startCurveInfluencePoint = Instantiate(emptyGameObject, controlPoint.modelHolder.transform);
+                    controlPoint.startCurveInfluencePoint.gameObject.name = "InfluencePoint 1";
+
+                    controlPoint.endCurveInfluencePoint = Instantiate(emptyGameObject, controlPoint.modelHolder.transform);
+                    controlPoint.endCurveInfluencePoint.gameObject.name = "InfluencePoint 2";
+                }
+
+                controlPoint.positionsBendModel= new Vector3[pipesystem.controlPointBendPoints];
+                controlPoint.rotationsBendModel= new Vector3[pipesystem.controlPointBendPoints];
             }
 
+            // adjust bend position and rotation
+            if(controlPoint.indexStartBendModel == controlPoint.indexEndBendModel)
+            {
+                controlPoint.indexStartBendModel = 0;
+                controlPoint.indexEndBendModel = 1;
+            }
 
-            linePoints = controlPoint.model.transform.childCount;
-            linePointPositions = new List<GameObject>();
+            // setup variables
+            Vector3 startPosition = controlPoint.modelConnectionPoints[controlPoint.indexStartBendModel].transform.position;
+            Vector3 endPosition   = controlPoint.modelConnectionPoints[controlPoint.indexEndBendModel].transform.position;
 
-            for (int i = 0; i < linePoints; i++)
-                linePointPositions.Add(controlPoint.model.transform.GetChild(i).gameObject);
+            controlPoint.startCurveInfluencePoint.transform.position = (1 - pipesystem.controlPointCurveStrength) * startPosition + pipesystem.controlPointCurveStrength * controlPoint.transform.position;
+            Vector3 influencePoint1 = controlPoint.startCurveInfluencePoint.transform.position;
 
-            linePointPositions[0].transform.position = startPosition;
-            linePointPositions[0].transform.rotation = Quaternion.LookRotation(controlPoint.transform.position);
+            controlPoint.endCurveInfluencePoint.transform.position = (1 - pipesystem.controlPointCurveStrength) * endPosition + pipesystem.controlPointCurveStrength * controlPoint.transform.position;
+            Vector3 influencePoint2 = controlPoint.endCurveInfluencePoint.transform.position;
 
-            Debug.Log(linePointPositions[linePointPositions.Count - 1]);
+            controlPoint.models[0].transform.position = controlPoint.transform.position;
 
-            linePointPositions[linePointPositions.Count - 1].transform.position = endPosition;
-            linePointPositions[linePointPositions.Count - 1].transform.rotation = Quaternion.LookRotation(controlPoint.transform.position);
+            // calculate
+            for (int i = 0; i < pipesystem.controlPointBendPoints; i++)
+            {
+                float t = (float)i/ (pipesystem.controlPointBendPoints-1);
 
+                float zmt = 1-t;
+                float zmt2 = zmt * zmt;
+                float t2 = t * t;
+                
 
-        }
-        else if(controlPoint.connectionLines.Count > 2)
-        {
+                controlPoint.positionsBendModel[i] = startPosition * (zmt2 * zmt) + influencePoint1 * (3 * zmt2 * t) + influencePoint2 * (3 * zmt * t2) + endPosition * (t2 * t);
 
+                controlPoint.rotationsBendModel[i] = startPosition * (-zmt2) + influencePoint1 * (3 * zmt2 - 2 * zmt) + influencePoint2 * (-3 * t2 + 2 * t) + endPosition * (t2);
+                controlPoint.rotationsBendModel[i] = controlPoint.rotationsBendModel[i].normalized;
+            }
+
+            // set
+            for (int i = 0; i < controlPoint.positionsBendModel.Length; i++)
+            {
+                controlPoint.models[0].transform.GetChild(i).transform.position = controlPoint.positionsBendModel[i];
+
+                Quaternion rotation = Quaternion.LookRotation(controlPoint.rotationsBendModel[i]);
+                
+                controlPoint.models[0].transform.GetChild(i).transform.rotation = rotation;
+            }
+
+            //if there are more then two connections
+            if(controlPoint.connectionLines.Count > 2)
+            {
+                //get modelConter
+                float t = 0.5f;
+                float zmt = 1 - t;
+                float zmt2 = zmt * zmt;
+                float t2 = t * t;
+                controlPoint.modelCenter = startPosition * (zmt2 * zmt) + influencePoint1 * (3 * zmt2 * t) + influencePoint2 * (3 * zmt * t2) + endPosition * (t2 * t);
+
+                //gizmos
+                int conn = controlPoint.modelConnectionPoints.Count;
+
+                float gizmoCount = (conn * conn - conn) / 2 - 1;
+
+                int a = controlPoint.indexStartBendModel;
+                int b = controlPoint.indexEndBendModel;
+
+                //while (controlPoint.curveSwitschGizmos.Count < gizmoCount)
+                //{
+
+                //}
+                
+                //additional models
+
+            }
         }
     }
 
@@ -1310,21 +1372,41 @@ public class PipesystemWindow : EditorWindow {
         }
     }
 
+    public void RecalculateAll()
+    {
+        foreach(ControlPoint controlPoint in pipesystem.controlPoints)
+        {
+            //connectionLine
+            foreach (ConnectionLine connectionLine in controlPoint.connectionLines)
+            {
+                for (int i = 0; i < connectionLine.segments.Count; i++)
+                {
+                    if(connectionLine.segments[i].transform.childCount>0)
+                        DestroyImmediate(connectionLine.segments[i].transform.GetChild(0).gameObject);
+                    
+                }
+
+                for (int i = 0; i < connectionLine.interjacents.Count; i++)
+                {
+                    DestroyImmediate(connectionLine.interjacents[i].gameObject);
+                }
+                connectionLine.segments.Clear();
+                connectionLine.interjacents.Clear();
+            }
+            //controlPoint
+            while (controlPoint.models.Count > 0)
+            {
+                DestroyImmediate(controlPoint.models[0].gameObject);
+                controlPoint.models.RemoveAt(0);
+            }
+
+            controlPointsToUpdate.Add(controlPoint);
+        }
+        pipesystem.recalculateAll = false;
+    }
+
     public void Debugger()
     {
-        SkinnedMeshRenderer meshRenderer = null;
-        Mesh mesh;
-        GameObject go;
-        go = Selection.activeGameObject;
-        if(go!=null)
-        {
-            meshRenderer = go.GetComponent<SkinnedMeshRenderer>();
-        }
-
-        if (meshRenderer != null)
-        {
-            mesh = meshRenderer.sharedMesh;
-            Debug.Log(mesh.bindposes.Length);
-        }
+        
     }
 }
