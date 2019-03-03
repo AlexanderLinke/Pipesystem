@@ -28,6 +28,7 @@ public class PipesystemWindow : EditorWindow {
     private SnapPoint selectedSnapPoint;
 
     private bool moveAlongLine;
+
     //private bool forcePipeUpdate;
     public List<ControlPoint> controlPointsToUpdate = new List<ControlPoint>();
 
@@ -97,6 +98,9 @@ public class PipesystemWindow : EditorWindow {
             moveAlongLine = GUILayout.Toggle(moveAlongLine, "Move Along Line");
             if (moveAlongLine)
                 MoveAlongLine();
+
+            if (GUILayout.Button("Curve/Uncurve"))
+                CurveConnectionLine();
 
             GUILayout.EndHorizontal();
 
@@ -314,6 +318,16 @@ public class PipesystemWindow : EditorWindow {
             foreach(ControlPoint controlPoint in pipesystem.controlPoints)
                 controlPoint.isSelectedControlPoint = false;
 
+            foreach (ControlPoint controlPoint in pipesystem.controlPoints)
+                foreach (ConnectionLine connectionLine in controlPoint.connectionLines)
+                {
+                    //if (connectionLine.startInfluencePoint != null)
+                    //{
+                    //    connectionLine.startInfluencePoint.GetComponent<InfluencePoint>().isSelected = false;
+                    //    connectionLine.endInfluencePoint.GetComponent<InfluencePoint>().isSelected = false;
+                    //}
+                }
+
             selectedControlPoints.Clear();
 
             foreach (Object totalSelected in objects)
@@ -329,12 +343,23 @@ public class PipesystemWindow : EditorWindow {
                     return;
                 }
 
+                InfluencePoint influencePoint = gameObject.GetComponent<InfluencePoint>();
+                if (influencePoint != null)
+                {
+                    influencePoint.isSelected = true;
+                    Object[] selection = new Object[1];
+                    selection[0] = influencePoint.gameObject;
+                    Selection.objects = selection;
+                    return;
+                }
+
                 if (controlPoint != null)
                 {
                     selectedControlPoints.Add(controlPoint);
                     controlPoint.isSelectedControlPoint = true;
                 }
             }
+
             //set the selection
             Object[] newSelection;
             if (selectedSnapPoint!=null)
@@ -698,6 +723,39 @@ public class PipesystemWindow : EditorWindow {
 
     }
 
+    void CurveConnectionLine()
+    {
+        if (selectedControlPoints.Count == 2 && selectedControlPoints[0].connectedControlPoints.Contains(selectedControlPoints[1]))
+        {
+            foreach (ConnectionLine connectionLine in selectedControlPoints[0].connectionLines)
+            {
+                if (selectedControlPoints[1].connectionLines.Contains(connectionLine))
+                {
+                    if (connectionLine.isCurved == true)
+                    {
+                        connectionLine.isCurved = false;
+                        DestroyImmediate(connectionLine.startInfluencePoint.gameObject);
+                        DestroyImmediate(connectionLine.endInfluencePoint.gameObject);
+                    }
+                    else
+                    {
+                        connectionLine.isCurved = true;
+                        connectionLine.startInfluencePoint = Instantiate(emptyGameObject, connectionLine.startControlPoint.modelHolder.transform);
+                        connectionLine.startInfluencePoint.name = "StartInfluencePoint";
+                        InfluencePoint startInfluencePoint = connectionLine.startInfluencePoint.AddComponent<InfluencePoint>();
+                        startInfluencePoint.correspondingPipesystem = pipesystem;
+
+                        connectionLine.endInfluencePoint = Instantiate(emptyGameObject, connectionLine.endControlPoint.modelHolder.transform);
+                        connectionLine.endInfluencePoint.name = "EndInfluencePoint";
+                        InfluencePoint endInfluencePoint = connectionLine.endInfluencePoint.AddComponent<InfluencePoint>();
+                        endInfluencePoint.correspondingPipesystem = pipesystem;
+                    }
+                }
+            }
+        }
+        controlPointsToUpdate.Add(selectedControlPoints[0]);
+    }
+
     public void CreateSnapPointHolder()
     {
         if(selectedControlPoints.Count==1)
@@ -799,7 +857,10 @@ public class PipesystemWindow : EditorWindow {
         while (controlPointsToDelete.Count > 0)
         {
             while(controlPointsToDelete[controlPointsToDelete.Count - 1].models.Count > 0)
+            {
                 DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].models[0].gameObject);
+                controlPointsToDelete[controlPointsToDelete.Count - 1].models.RemoveAt(controlPointsToDelete[controlPointsToDelete.Count - 1].models.Count - 1);
+            }
             controlPointsToDelete[controlPointsToDelete.Count - 1].models.Clear();
 
             DestroyImmediate(controlPointsToDelete[controlPointsToDelete.Count - 1].gameObject);
@@ -813,9 +874,13 @@ public class PipesystemWindow : EditorWindow {
                 selectedControlPoints.Add(controlPoint.GetComponent<ControlPoint>());
 
             Selection.objects = newSelectedControlPoint;
+
+            
         }
-        
         RemoveMissingObjectsFromList();
+
+        foreach(ControlPoint controlPoint in pipesystem.controlPoints)
+            controlPointsToUpdate.Add(controlPoint);
     }
 
     public void DeleteConnectionLine(ConnectionLine connectionLine)
@@ -882,6 +947,11 @@ public class PipesystemWindow : EditorWindow {
         controlPointsToUpdate.Add(controlPoint_1);
     }
 
+    Vector3 GetPointOnCurve(Vector3[] points, float percentageValue)
+    {
+        return Vector3.zero;
+    }
+
     public void UpdatePipes()
     {
         foreach (ControlPoint controlPoint in pipesystem.controlPoints)
@@ -902,68 +972,185 @@ public class PipesystemWindow : EditorWindow {
             foreach (ConnectionLine connectionLine in controlPoint.connectionLines)
             {
                 //setup distance
-                float distance = Vector3.Distance(connectionLine.startControlPoint.transform.position, connectionLine.endControlPoint.transform.position);
-
-                float restDistance = distance;
                 bool shortendSegment = false;
-
-                if (connectionLine.startControlPoint.snapPoint == null)
-                    restDistance -= pipesystem.distanceSegmentsControlPoint;
-                if (connectionLine.endControlPoint.snapPoint == null)
-                    restDistance -= pipesystem.distanceSegmentsControlPoint;
-
+                float distance = 0;
+                float restDistance = 0;
                 int segmentCount = 0;
+                
+                Vector3 startPosition;
+                Vector3 segmentEndPosition;
+                Vector3 endPosition;
 
-                if(restDistance>pipesystem.segmentLength)
-                     segmentCount = (int)(restDistance / pipesystem.segmentLength);
-
-                if (restDistance > 0)
+                if (!connectionLine.isCurved)
                 {
-                    UpdateShortendSegment();
-                    shortendSegment = true;
-                }
+                    //linearLine
+                    distance = Vector3.Distance(connectionLine.startControlPoint.transform.position, connectionLine.endControlPoint.transform.position);
 
-                while (restDistance > pipesystem.segmentLength)
-                {
-                    restDistance -= pipesystem.segmentLength;
-                    if(pipesystem.segmentLength <= 0)
+                    restDistance = distance;
+
+                    if (connectionLine.startControlPoint.snapPoint == null)
+                        restDistance -= pipesystem.distanceSegmentsControlPoint;
+                    if (connectionLine.endControlPoint.snapPoint == null)
+                        restDistance -= pipesystem.distanceSegmentsControlPoint;
+
+
+                    if(restDistance>pipesystem.segmentLength)
+                         segmentCount = (int)(restDistance / pipesystem.segmentLength);
+
+                    if (restDistance > 0)
                     {
-                        Debug.Log("Please increase your Segment Length");
-                        return;
+                        UpdateShortendSegment();
+                        shortendSegment = true;
                     }
+
+                    while (restDistance > pipesystem.segmentLength)
+                    {
+                        restDistance -= pipesystem.segmentLength;
+                        if(pipesystem.segmentLength <= 0)
+                        {
+                            Debug.Log("Please increase your Segment Length");
+                            return;
+                        }
+                    }
+                    //setup startPosition
+                    GameObject startPoint = connectionLine.startPosition;
+                    if (connectionLine.endControlPoint.transform.position != Vector3.zero)
+                        startPoint.transform.rotation = Quaternion.LookRotation(connectionLine.endControlPoint.transform.position);
+                    startPoint.transform.position = connectionLine.startControlPoint.transform.position;
+                    startPoint.transform.position = Vector3.MoveTowards(startPoint.transform.position, connectionLine.endControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint);
+                    startPosition = startPoint.transform.position;
+
+                    //setup segmentEndPosition
+                    GameObject segmentEndPoint = connectionLine.segmentEndPosition;
+                    if (connectionLine.startControlPoint.transform.position != Vector3.zero)
+                        segmentEndPoint.transform.rotation = Quaternion.LookRotation(connectionLine.startControlPoint.transform.position);
+
+                    segmentEndPoint.transform.position = connectionLine.endControlPoint.transform.position;
+                    segmentEndPoint.transform.position = Vector3.MoveTowards(segmentEndPoint.transform.position, connectionLine.startControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint + restDistance);
+                    segmentEndPosition = segmentEndPoint.transform.position;
+
+                    //setup endPosition
+                    GameObject endPoint = connectionLine.endPosition;
+                    if (connectionLine.startControlPoint.transform.position != Vector3.zero)
+                        endPoint.transform.rotation = Quaternion.LookRotation(connectionLine.startControlPoint.transform.position);
+
+                    endPoint.transform.position = connectionLine.endControlPoint.transform.position;
+                    endPoint.transform.position = Vector3.MoveTowards(endPoint.transform.position, connectionLine.startControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint);
+                    endPosition = endPoint.transform.position;
+                }
+                else
+                {
+                    //curvedLine
+
+                    // get distance
+                   
+                    Vector3 startPoint = connectionLine.startControlPoint.transform.position;
+                    Vector3 endPoint = connectionLine.endControlPoint.transform.position;
+
+                    Vector3 influencePoint1 = connectionLine.startInfluencePoint.transform.position;
+                    Vector3 influencePoint2 = connectionLine.endInfluencePoint.transform.position;
+
+                    //Vector3[] points = GetCurve(100, startPoint, influencePoint1, influencePoint2, endPoint);
+                    int iterationCount = 100;
+
+                    Vector3[] curvePoints = new Vector3[iterationCount];
+
+                    for (int i = 0; i < iterationCount; i++)
+                    {
+                        float t = (float)i / (iterationCount - 1);
+
+                        float zmt = 1 - t;
+                        float zmt2 = zmt * zmt;
+                        float t2 = t * t;
+                        curvePoints[i] = startPoint * (zmt2 * zmt) + influencePoint1 * (3 * zmt2 * t) + influencePoint2 * (3 * zmt * t2) + endPoint * (t2 * t);
+                    }
+
+                    for (int i = 0; i < curvePoints.Length-1; i++)
+                    {
+                        distance = distance + Vector3.Distance(curvePoints[i], curvePoints[i + 1]);
+                    }
+
+                    Vector3[] points = new Vector3[iterationCount];
+                    
+                    float stepSize = distance / iterationCount;
+                    float distanceCurvePoints = 0;
+                    float rest = 0;
+                    int point = 0;
+                    float dis = 0;
+
+                    for (int i = 0; i < iterationCount; i++)
+                    {
+                        if(i==0)
+
+
+                        while (distanceCurvePoints < stepSize)
+                        {
+                            point++;
+                            distanceCurvePoints = distanceCurvePoints + Vector3.Distance(curvePoints[point], curvePoints[point + 1]);
+                        }
+                        //get point
+                        rest = distanceCurvePoints - stepSize;
+                        dis = Vector3.Distance(curvePoints[point - 1], curvePoints[point]);
+
+                        points[i] = (1 - (dis / rest)) * curvePoints[point - 1] + curvePoints[point] * (dis / rest);
+
+                        distanceCurvePoints = rest;
+                        
+                    }
+
+                    restDistance = distance;
+
+                    if (connectionLine.startControlPoint.snapPoint == null)
+                        restDistance -= pipesystem.distanceSegmentsControlPoint;
+                    if (connectionLine.endControlPoint.snapPoint == null)
+                        restDistance -= pipesystem.distanceSegmentsControlPoint;
+
+
+                    if (restDistance > pipesystem.segmentLength)
+                        segmentCount = (int)(restDistance / pipesystem.segmentLength);
+
+                    if (restDistance > 0)
+                    {
+                        UpdateShortendSegment();
+                        shortendSegment = true;
+                    }
+
+                    while (restDistance > pipesystem.segmentLength)
+                    {
+                        restDistance -= pipesystem.segmentLength;
+                        if (pipesystem.segmentLength <= 0)
+                        {
+                            Debug.Log("Please increase your Segment Length");
+                            return;
+                        }
+                    }
+
+
+
+                    ////start position of connectionline
+                    //t = pipesystem.distanceSegmentsControlPoint/distance;
+                    //Debug.Log(t);
+                    startPosition = Vector3.zero;
+                    connectionLine.startPosition.transform.position = startPosition;
+
+                    ////end position of ConnectionLine
+                    //t = (distance-pipesystem.distanceSegmentsControlPoint) / distance;
+                    endPosition = Vector3.zero;
+                    connectionLine.endPosition.transform.position = endPosition;
+
+                    //Debug.Log(distance);
+                    ////segmentend position of connectionLine
+                    //t = (segmentCount*pipesystem.segmentLength + pipesystem.distanceSegmentsControlPoint / distance) / distance;
+                    segmentEndPosition = Vector3.zero;
+                    connectionLine.segmentEndPosition.transform.position = segmentEndPosition;
+
                 }
 
                 controlPoint.oldPosition = controlPoint.transform.position;
                 connectionLine.distance = distance;
 
                 Vector3 newPointPosition = controlPoint.transform.position;
-                
-                //Update start position logic. Use controlpoint curve points
-                //setup startPosition
-                GameObject startPoint = connectionLine.startPosition;
-                if(connectionLine.endControlPoint.transform.position!=Vector3.zero)
-                    startPoint.transform.rotation = Quaternion.LookRotation(connectionLine.endControlPoint.transform.position);
-                startPoint.transform.position = connectionLine.startControlPoint.transform.position;
-                startPoint.transform.position= Vector3.MoveTowards(startPoint.transform.position,connectionLine.endControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint);
-                Vector3 startPosition = startPoint.transform.position;
-                
-                //setup segmentEndPosition
-                GameObject segmentEndPoint = connectionLine.segmentEndPosition;
-                if (connectionLine.startControlPoint.transform.position != Vector3.zero)
-                    segmentEndPoint.transform.rotation = Quaternion.LookRotation(connectionLine.startControlPoint.transform.position);
 
-                segmentEndPoint.transform.position = connectionLine.endControlPoint.transform.position;
-                segmentEndPoint.transform.position = Vector3.MoveTowards(segmentEndPoint.transform.position, connectionLine.startControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint+restDistance);
-                Vector3 segmentEndPosition = segmentEndPoint.transform.position;
-
-                //setup endPosition
-                GameObject endPoint = connectionLine.endPosition;
-                if (connectionLine.startControlPoint.transform.position != Vector3.zero)
-                    endPoint.transform.rotation = Quaternion.LookRotation(connectionLine.startControlPoint.transform.position);
-
-                endPoint.transform.position = connectionLine.endControlPoint.transform.position;
-                endPoint.transform.position = Vector3.MoveTowards(endPoint.transform.position, connectionLine.startControlPoint.transform.position, pipesystem.distanceSegmentsControlPoint);
-                Vector3 endPosition = endPoint.transform.position;
 
                 //Update ControlPointModel
                 UpdateControlPointModel(controlPoint);
@@ -1319,12 +1506,12 @@ public class PipesystemWindow : EditorWindow {
                 controlPoint.modelCenter = startPosition * (zmt2 * zmt) + influencePoint1 * (3 * zmt2 * t) + influencePoint2 * (3 * zmt * t2) + endPosition * (t2 * t);
 
                 //gizmos
-                int conn = controlPoint.modelConnectionPoints.Count;
+                //int conn = controlPoint.modelConnectionPoints.Count;
 
-                float gizmoCount = (conn * conn - conn) / 2 - 1;
+                //float gizmoCount = (conn * conn - conn) / 2 - 1;
 
-                int a = controlPoint.indexStartBendModel;
-                int b = controlPoint.indexEndBendModel;
+                //int a = controlPoint.indexStartBendModel;
+                //int b = controlPoint.indexEndBendModel;
 
                 //while (controlPoint.curveSwitschGizmos.Count < gizmoCount)
                 //{

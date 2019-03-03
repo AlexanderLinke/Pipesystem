@@ -171,6 +171,7 @@ MonoBehaviour:
   pipeStyle: {fileID: 11400000, guid: a1d84c6afb6e61d428e3f813a596c762, type: 2}
   isLinked: 1
   selectControlPointsOnly: 0
+  recalculateAll: 0
   controlPointHolder: {fileID: 4393031493417650534}
   connectionLineHolder: {fileID: 4392467397836550652}
   snapPointsHolder: {fileID: 4391883047643369210}
@@ -180,7 +181,8 @@ MonoBehaviour:
   distanceSegmentsControlPoint: 2.5
   interjacentAtConnectionPoint: 1
   interjacentAtEndPoint: 1
-  controlPointBendPoints: 3
+  controlPointBendPoints: 5
+  controlPointCurveStrength: 0.75
   segmentPrefab:
   - {fileID: 1398382493770738, guid: f20776cfee6eb4847ba8cd2881c63dac, type: 3}
   - {fileID: 1858672028952552, guid: 8b4c1cd663e5a2443a76ea385e485fdc, type: 3}
@@ -197,8 +199,8 @@ MonoBehaviour:
   controlPointPrefab:
   - {fileID: 7526475960125673893, guid: eaa8d80c3b62a7e4cb85edac58015ab6, type: 3}
   modifiedControlPointPrefab:
-  - {fileID: 2797614655491686207, guid: 3d37e5845e0d6984faf5c568352104cc, type: 3}
-  controlPointProbability: 0000000000000000
+  - {fileID: 8508047933838236543, guid: b536f6e5aa060ca4ea9509d6fb82c4da, type: 3}
+  controlPointProbability: 6400000000000000
   gizmoColors:
   - serializedVersion: 2
     rgba: 4278255615
@@ -213,11 +215,15 @@ MonoBehaviour:
   - serializedVersion: 2
     rgba: 4278255360
   - serializedVersion: 2
-    rgba: 4278228223
+    rgba: 4294933760
   - serializedVersion: 2
     rgba: 4278255360
   - serializedVersion: 2
     rgba: 4294967295
+  - serializedVersion: 2
+    rgba: 4278225919
+  - serializedVersion: 2
+    rgba: 1677753855
   gizmoSizeControlPoints: 1
   gizmoSizeSnapPoints: 1
   mainMaterial: {fileID: 2100000, guid: bb83c7120251eb34cb10bdd16d1c0ab8, type: 2}

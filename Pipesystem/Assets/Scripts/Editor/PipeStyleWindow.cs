@@ -621,6 +621,19 @@ public class PipeStyleWindow : EditorWindow
         GUILayout.Label("Unavailable");
         pipesystem.gizmoColors[8] = EditorGUILayout.ColorField(pipesystem.gizmoColors[8], GUILayout.Width(colorfieldWidth));
         GUILayout.EndHorizontal();
+
+        GUILayout.Space(10);
+        GUILayout.Label("Influence Point", EditorStyles.boldLabel);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Selected");
+        pipesystem.gizmoColors[9] = EditorGUILayout.ColorField(pipesystem.gizmoColors[9], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Unselected");
+        pipesystem.gizmoColors[10] = EditorGUILayout.ColorField(pipesystem.gizmoColors[10], GUILayout.Width(colorfieldWidth));
+        GUILayout.EndHorizontal();
     }
 
     public void MainMaterial()
