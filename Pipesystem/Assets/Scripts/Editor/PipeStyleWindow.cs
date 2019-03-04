@@ -14,6 +14,7 @@ public class PipeStyleWindow : EditorWindow
     private string newPipestyleName;
 
     private PrefabCollector segmentPrefabCollector;
+    private PrefabCollector bendSegmentPrefabCollector;
     private PrefabCollector interjacentPrefabCollector;
     private PrefabCollector endPointPrefabCollector;
     private PrefabCollector snappablePrefabCollector;
@@ -30,6 +31,7 @@ public class PipeStyleWindow : EditorWindow
     private float oldGizmoSizeSnapPoints;
 
     private bool showSegmentGroup;
+    private bool showBendSegmentGroup;
     private bool showInterjacentGroup;
     private bool showEndPointGroup;
     private bool showSnappableGroup;
@@ -84,6 +86,11 @@ public class PipeStyleWindow : EditorWindow
             if (showSegmentGroup)
                 Segment();
 
+            //BendSegment
+            showBendSegmentGroup = EditorGUILayout.Foldout(showBendSegmentGroup, "Bend Segments");
+            if (showBendSegmentGroup)
+                BendSegment();
+
             //Interjasents
             showInterjacentGroup = EditorGUILayout.Foldout(showInterjacentGroup, "Interjacents");
             if (showInterjacentGroup)
@@ -121,6 +128,7 @@ public class PipeStyleWindow : EditorWindow
         GetAllPipestyls();
 
         segmentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
+        bendSegmentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         interjacentPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         endPointPrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
         snappablePrefabCollector = (PrefabCollector)CreateInstance("PrefabCollector");
@@ -130,6 +138,9 @@ public class PipeStyleWindow : EditorWindow
         {
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
             segmentPrefabCollector.SetupOldProbability();
+
+            bendSegmentPrefabCollector.Setup(pipesystem.bendSegmentPrefab, pipesystem.bendSegmentProbability, usedStyle.bendSegmentPrefab, usedStyle.bendSegmentProbability);
+            bendSegmentPrefabCollector.SetupOldProbability();
 
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.SetupOldProbability();
@@ -175,6 +186,9 @@ public class PipeStyleWindow : EditorWindow
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
             segmentPrefabCollector.SetupOldProbability();
 
+            bendSegmentPrefabCollector.Setup(pipesystem.bendSegmentPrefab, pipesystem.bendSegmentProbability, usedStyle.bendSegmentPrefab, usedStyle.bendSegmentProbability);
+            bendSegmentPrefabCollector.SetupOldProbability();
+
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.SetupOldProbability();
 
@@ -200,6 +214,10 @@ public class PipeStyleWindow : EditorWindow
             segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, usedStyle.segmentPrefab, usedStyle.segmentProbability);
             segmentPrefabCollector.RevertChanges();
             segmentPrefabCollector.SetupOldProbability();
+
+            bendSegmentPrefabCollector.Setup(pipesystem.bendSegmentPrefab, pipesystem.bendSegmentProbability, usedStyle.bendSegmentPrefab, usedStyle.bendSegmentProbability);
+            bendSegmentPrefabCollector.RevertChanges();
+            bendSegmentPrefabCollector.SetupOldProbability();
 
             interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, usedStyle.interjacentPrefab, usedStyle.interjacentProbability);
             interjacentPrefabCollector.RevertChanges();
@@ -245,6 +263,45 @@ public class PipeStyleWindow : EditorWindow
 
         segmentPrefabCollector.PrefabList();
         segmentPrefabCollector.DragNewArea();
+    }
+
+    public void BendSegment()
+    {
+        bendSegmentPrefabCollector.PrefabList();
+        bendSegmentPrefabCollector.DragNewArea();
+
+        EditorGUI.BeginChangeCheck();
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("BendPoints: ");
+        pipesystem.segmentBendPoints = EditorGUILayout.IntField(pipesystem.segmentBendPoints);
+        GUILayout.EndHorizontal();
+
+        //recalculate all if controlPointBendPoints has been changed
+        if (EditorGUI.EndChangeCheck())
+        {
+            for (int i = 0; i < pipesystem.bendSegmentPrefab.Count; i++)
+                AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedBendSegmentPrefab[i]));
+
+            pipesystem.modifiedBendSegmentPrefab.Clear();
+
+            for (int i = 0; i < pipesystem.bendSegmentPrefab.Count; i++)
+                CreateBendSegment(i);
+
+            pipesystem.recalculateAll = true;
+
+        }
+
+        //delete modified if base is removed
+        if (bendSegmentPrefabCollector.deleteAt != -1)
+        {
+            AssetDatabase.DeleteAsset(AssetDatabase.GetAssetPath(pipesystem.modifiedBendSegmentPrefab[bendSegmentPrefabCollector.deleteAt]));
+            pipesystem.modifiedBendSegmentPrefab.RemoveAt(bendSegmentPrefabCollector.deleteAt);
+            bendSegmentPrefabCollector.deleteAt = -1;
+        }
+           
+        //add new
+        if (pipesystem.modifiedBendSegmentPrefab.Count < pipesystem.bendSegmentPrefab.Count)
+            CreateBendSegment(pipesystem.modifiedBendSegmentPrefab.Count);
     }
 
     public void Interjacent()
@@ -412,6 +469,107 @@ public class PipeStyleWindow : EditorWindow
 
     }
 
+    public void CreateBendSegment(int index)
+    {
+        //GUI.changed = false;
+        GameObject prefab = (GameObject)PrefabUtility.InstantiatePrefab(pipesystem.bendSegmentPrefab[index]);
+        SkinnedMeshRenderer meshRenderer;
+        Mesh mesh;
+
+        //get mesh
+        meshRenderer = prefab.AddComponent<SkinnedMeshRenderer>();
+        meshRenderer.sharedMesh = prefab.GetComponent<MeshFilter>().sharedMesh;
+        mesh = meshRenderer.sharedMesh;
+        mesh.boneWeights = null;
+        mesh.bindposes = null;
+
+        //weigth paint
+        Transform[] bones = new Transform[pipesystem.segmentBendPoints];
+        Matrix4x4[] bindPoses = new Matrix4x4[pipesystem.segmentBendPoints];
+        BoneWeight[] weights = new BoneWeight[mesh.vertexCount];
+        //bones
+
+        for (int i = 0; i < pipesystem.segmentBendPoints; i++)
+        {
+            bones[i] = new GameObject().transform;
+            bones[i].name = i.ToString();
+            bones[i].localRotation = Quaternion.identity;
+
+            float zPosition = -pipesystem.segmentLength/2 + ((pipesystem.segmentLength) / (pipesystem.segmentBendPoints - 1) * i);
+            bones[i].localPosition = new Vector3(0, 0, zPosition);
+
+            bindPoses[i] = bones[i].worldToLocalMatrix * prefab.transform.localToWorldMatrix;
+            bones[i].transform.parent = prefab.transform;
+        }
+
+        //weights
+        for (int i = 0; i < mesh.vertexCount; i++)
+        {
+
+            float distanceToPoint = 0;
+            float distanceToClosestPoint = bones[0].transform.position.z * -2;
+            float distanceBetweenPoints = bones[1].transform.position.z - bones[0].transform.position.z;
+            int closestPoint = 0;
+            int secondClosestPoint = 0;
+            float weigthOfClosestPoint;
+
+            for (int j = 0; j < pipesystem.segmentBendPoints; j++)
+            {
+                distanceToPoint = mesh.vertices[i].z - bones[j].transform.position.z;
+
+                if (distanceToPoint < 0)
+                    distanceToPoint = distanceToPoint * -1;
+
+                if (distanceToPoint <= distanceToClosestPoint)
+                {
+                    secondClosestPoint = closestPoint;
+                    closestPoint = j;
+                    distanceToClosestPoint = distanceToPoint;
+                }
+            }
+
+            weigthOfClosestPoint = (distanceBetweenPoints - (bones[closestPoint].transform.position.z - mesh.vertices[i].z)) / distanceBetweenPoints;
+
+            weights[i].boneIndex0 = closestPoint;
+            weights[i].weight0 = weigthOfClosestPoint;
+
+            weights[i].boneIndex1 = secondClosestPoint;
+            weights[i].weight1 = 1 - weigthOfClosestPoint;
+
+        }
+
+
+
+        meshRenderer.bones = bones;
+        mesh.bindposes = bindPoses;
+        mesh.boneWeights = weights;
+
+        //save
+        string datapath = AssetDatabase.GetAssetPath(pipesystem.bendSegmentPrefab[index]);
+        datapath = datapath.Replace(pipesystem.bendSegmentPrefab[index].name + ".prefab", string.Empty);
+        datapath = datapath + pipesystem.bendSegmentPrefab[index].name + "Modified" + ".prefab";
+
+        GameObject gg = (GameObject)AssetDatabase.LoadAssetAtPath(datapath, typeof(GameObject));
+
+        if (gg == null)
+        {
+            PrefabUtility.SaveAsPrefabAsset(prefab, datapath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+
+
+        GameObject go = (GameObject)AssetDatabase.LoadAssetAtPath(datapath, typeof(GameObject));
+        //Debug.Log(pipesystem.modifiedControlPointPrefab.Count);
+        pipesystem.modifiedBendSegmentPrefab.Add(go);
+        pipesystem.modifiedBendSegmentPrefab[pipesystem.modifiedBendSegmentPrefab.Count - 1] = (GameObject)AssetDatabase.LoadAssetAtPath(datapath, typeof(GameObject));
+        //if (GUI.changed)
+        //    EditorUtility.SetDirty(mesh);
+        DestroyImmediate(prefab);
+
+    }
+
     public void SavePipestyleAsNew()
     {
         //create a new pipestyle instance with the current values
@@ -419,6 +577,8 @@ public class PipeStyleWindow : EditorWindow
 
         newStyle.segmentPrefab = new List<GameObject>();
         newStyle.segmentProbability = new List<int>();
+        newStyle.bendSegmentPrefab = new List<GameObject>();
+        newStyle.bendSegmentProbability = new List<int>();
         newStyle.interjacentPrefab = new List<GameObject>();
         newStyle.interjacentProbability = new List<int>();
         newStyle.endPointPrefab = new List<GameObject>();
@@ -430,6 +590,7 @@ public class PipeStyleWindow : EditorWindow
         newStyle.gizmoColors = new List<Color32>();
 
         segmentPrefabCollector.Setup(pipesystem.segmentPrefab, pipesystem.segmentProbability, newStyle.segmentPrefab, newStyle.segmentProbability);
+        bendSegmentPrefabCollector.Setup(pipesystem.bendSegmentPrefab, pipesystem.bendSegmentProbability, newStyle.bendSegmentPrefab, newStyle.bendSegmentProbability);
         interjacentPrefabCollector.Setup(pipesystem.interjacentPrefab, pipesystem.interjacentProbability, newStyle.interjacentPrefab, newStyle.interjacentProbability);
         endPointPrefabCollector.Setup(pipesystem.endPointPrefab, pipesystem.endPointProbability, usedStyle.endPointPrefab, usedStyle.endPointProbability);
         snappablePrefabCollector.Setup(pipesystem.snappablePrefab, pipesystem.snappableProbability, usedStyle.snappablePrefab, usedStyle.snappableProbability);
@@ -482,6 +643,9 @@ public class PipeStyleWindow : EditorWindow
         tempFloat = pipesystem.distanceSegmentsControlPoint;
         style.distanceSegmentsControlPoint = tempFloat;
 
+        tempInt = pipesystem.segmentBendPoints;
+        style.segmentBendPoints = tempInt;
+
         tempInt = pipesystem.controlPointBendPoints;
         style.controlPointBendPoints = tempInt;
 
@@ -489,6 +653,7 @@ public class PipeStyleWindow : EditorWindow
         style.controlPointCurveStrength = tempFloat;
 
         segmentPrefabCollector.ApplyChanges();
+        bendSegmentPrefabCollector.ApplyChanges();
         interjacentPrefabCollector.ApplyChanges();
         endPointPrefabCollector.ApplyChanges();
         snappablePrefabCollector.ApplyChanges();
@@ -522,10 +687,12 @@ public class PipeStyleWindow : EditorWindow
         pipesystem.segmentLength = usedStyle.segmentLength;
         pipesystem.segmentDiameter = usedStyle.segmentDiameter;
         pipesystem.distanceSegmentsControlPoint = usedStyle.distanceSegmentsControlPoint;
+        pipesystem.segmentBendPoints = usedStyle.segmentBendPoints;
         pipesystem.controlPointBendPoints = usedStyle.controlPointBendPoints;
         pipesystem.controlPointCurveStrength = usedStyle.controlPointCurveStrength;
 
         segmentPrefabCollector.RevertChanges();
+        bendSegmentPrefabCollector.RevertChanges();
         interjacentPrefabCollector.RevertChanges();
         endPointPrefabCollector.RevertChanges();
         snappablePrefabCollector.RevertChanges();

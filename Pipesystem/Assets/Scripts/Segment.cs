@@ -11,6 +11,9 @@ public class Segment : MonoBehaviour {
 
     public bool isHoverd;
 
+    public GameObject model;
+    public Vector3[] bendPoints;
+
     public Pipesystem pipesystem;
 
     void OnDrawGizmos()

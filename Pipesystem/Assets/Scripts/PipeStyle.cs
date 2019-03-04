@@ -8,6 +8,7 @@ public class PipeStyle : ScriptableObject
     public float segmentLength;
     public float segmentDiameter;
     public float distanceSegmentsControlPoint;
+    public int segmentBendPoints;
 
     //interjacent
     public bool interjacentAtConnectionPoint; 
@@ -20,6 +21,10 @@ public class PipeStyle : ScriptableObject
     //prefabs
     public List<GameObject> segmentPrefab;
     public List<int> segmentProbability;
+
+    public List<GameObject> bendSegmentPrefab;
+    public List<GameObject> modifiedBendSegmentPrefab;
+    public List<int> bendSegmentProbability;
 
     public List<GameObject> interjacentPrefab;
     public List<int> interjacentProbability;
