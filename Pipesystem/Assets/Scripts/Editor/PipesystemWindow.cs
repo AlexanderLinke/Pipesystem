@@ -20,6 +20,7 @@ public class PipesystemWindow : EditorWindow {
 
     //selection
     private List<ControlPoint> selectedControlPoints = new List<ControlPoint>();
+    private InfluencePoint selectedInfluencePoint;
     private bool mousePressed;
     private bool shiftPressed;
     private bool segmentSelection;
@@ -296,13 +297,24 @@ public class PipesystemWindow : EditorWindow {
             
             foreach (ControlPoint controlPoint in pipesystem.controlPoints)
             {
+               
                 foreach(Object go in Selection.objects)
                 {
                     if (controlPoint.gameObject == go)
                     {
                         controlPoint.isSelectedControlPoint = true;
                         selectedControlPoints.Add(controlPoint);
-                    } 
+                    }
+
+                    GameObject influencePointObject = (GameObject)go;
+                    if (influencePointObject != null)
+                    {
+                        InfluencePoint influencePoint = influencePointObject.GetComponent<InfluencePoint>();
+                        if(influencePoint!=null)
+                        {
+                            selectedInfluencePoint = influencePoint;
+                        }
+                    }
                 }
                 if (!selectedControlPoints.Contains(controlPoint))
                     controlPoint.isSelectedControlPoint = false;
@@ -314,6 +326,7 @@ public class PipesystemWindow : EditorWindow {
         {
             Object[] objects;
             objects = Selection.objects;
+            selectedInfluencePoint = null;
 
             foreach(ControlPoint controlPoint in pipesystem.controlPoints)
                 controlPoint.isSelectedControlPoint = false;
@@ -350,6 +363,8 @@ public class PipesystemWindow : EditorWindow {
                     Object[] selection = new Object[1];
                     selection[0] = influencePoint.gameObject;
                     Selection.objects = selection;
+                    selectedInfluencePoint = influencePoint;
+                    
                     return;
                 }
 
@@ -740,13 +755,13 @@ public class PipesystemWindow : EditorWindow {
                     else
                     {
                         connectionLine.isCurved = true;
-                        connectionLine.startInfluencePoint = Instantiate(emptyGameObject, connectionLine.startControlPoint.modelHolder.transform);
+                        connectionLine.startInfluencePoint = Instantiate(emptyGameObject, connectionLine.startControlPoint.transform);
                         connectionLine.startInfluencePoint.name = "StartInfluencePoint";
                         connectionLine.startInfluencePoint.transform.position = connectionLine.startPosition.transform.position;
                         InfluencePoint startInfluencePoint = connectionLine.startInfluencePoint.AddComponent<InfluencePoint>();
                         startInfluencePoint.correspondingPipesystem = pipesystem;
 
-                        connectionLine.endInfluencePoint = Instantiate(emptyGameObject, connectionLine.endControlPoint.modelHolder.transform);
+                        connectionLine.endInfluencePoint = Instantiate(emptyGameObject, connectionLine.endControlPoint.transform);
                         connectionLine.endInfluencePoint.name = "EndInfluencePoint";
                         connectionLine.endInfluencePoint.transform.position = connectionLine.endPosition.transform.position;
                         InfluencePoint endInfluencePoint = connectionLine.endInfluencePoint.AddComponent<InfluencePoint>();
@@ -971,6 +986,11 @@ public class PipesystemWindow : EditorWindow {
             index++;
 
         float rest = index * steps - percentageValue;
+
+        if(index >= points.Length)
+        {
+            return Vector3.zero;
+        }
         float dis = Vector3.Distance(points[index-1], points[index]);
         float precentBetweenTwo = (1 - rest / dis);
         //Debug.Log(precentBetweenTwo);
@@ -978,6 +998,13 @@ public class PipesystemWindow : EditorWindow {
         Vector3 point = (1 - precentBetweenTwo) * points[index-1] + points[index] * precentBetweenTwo;
 
         return point;
+    }
+
+    Vector3 GetRotationOnCurve(Vector3[]points, float percentageValue)
+    {
+        Vector3 rotation = Vector3.zero;
+
+        return rotation;
     }
 
     public void UpdatePipes()
@@ -993,6 +1020,11 @@ public class PipesystemWindow : EditorWindow {
                 controlPoint.oldPosition = controlPoint.transform.position;
                 
             }
+        }
+        if(selectedInfluencePoint!=null)
+        {
+            Debug.Log("shit");
+            controlPointsToUpdate.Add(selectedInfluencePoint.transform.parent.GetComponent<ControlPoint>());
         }
 
         foreach (ControlPoint controlPoint in controlPointsToUpdate)
@@ -1010,6 +1042,10 @@ public class PipesystemWindow : EditorWindow {
                 Vector3 startPosition;
                 Vector3 segmentEndPosition;
                 Vector3 endPosition;
+
+                int iterationCount = 1000;
+                Vector3[] points = new Vector3[iterationCount];
+                float controlPointOffset =0;
 
                 if (!connectionLine.isCurved)
                 {
@@ -1167,8 +1203,8 @@ public class PipesystemWindow : EditorWindow {
                 {
                     //curvedLine
                     float percentageValue = 0;
-                    int iterationCount = 1000;
-                    Vector3[] points = new Vector3[iterationCount];
+                    //int iterationCount = 1000;
+                    //Vector3[] points = new Vector3[iterationCount];
 
                     Vector3 startPoint = connectionLine.startControlPoint.transform.position;
                     Vector3 endPoint = connectionLine.endControlPoint.transform.position;
@@ -1177,6 +1213,7 @@ public class PipesystemWindow : EditorWindow {
                     Vector3 influencePoint2 = connectionLine.endInfluencePoint.transform.position;
 
                     Vector3[] curvePoints = new Vector3[iterationCount];
+                    Vector3[] curveRotations = new Vector3[iterationCount];
 
                     //create the bezier Curve
                     for (int i = 0; i < iterationCount; i++)
@@ -1187,6 +1224,9 @@ public class PipesystemWindow : EditorWindow {
                         float zmt2 = zmt * zmt;
                         float t2 = t * t;
                         curvePoints[i] = startPoint * (zmt2 * zmt) + influencePoint1 * (3 * zmt2 * t) + influencePoint2 * (3 * zmt * t2) + endPoint * (t2 * t);
+
+                        curveRotations[i] = startPoint * (-zmt2) + influencePoint1 * (3 * zmt2 - 2 * zmt) + influencePoint2 * (-3 * t2 + 2 * t) + endPoint * (t2);
+                        curveRotations[i] = curveRotations[i].normalized;
                     }
 
                     for (int i = 0; i < curvePoints.Length-1; i++)
@@ -1195,7 +1235,6 @@ public class PipesystemWindow : EditorWindow {
                     }
 
                     //set up the percentage correct curve
-                    //Vector3[] points = new Vector3[iterationCount];
                     
                     float stepSize = distance / iterationCount;
                     float distanceCurvePoints = 0;
@@ -1307,6 +1346,8 @@ public class PipesystemWindow : EditorWindow {
                         newSegment.diameter = pipesystem.segmentDiameter;
                         newSegment.segmentNumber = randomBendSegmentPrefabIndex;
                         newSegment.model = newSegmentPrefab;
+                        newSegment.bendPointsPositions = new Vector3[pipesystem.segmentBendPoints];
+                        newSegment.bendPointRotations = new Vector3[pipesystem.segmentBendPoints];
 
                         if (controlPoint == connectionLine.endControlPoint)
                         {
@@ -1343,44 +1384,36 @@ public class PipesystemWindow : EditorWindow {
                         segment.name = "Segment " + segment.indexInLine;
 
                     //adjust position and rotation
-                    float controlPointOffset = pipesystem.distanceSegmentsControlPoint / distance;
+                    controlPointOffset = pipesystem.distanceSegmentsControlPoint / distance;
 
                     Vector3 position;
 
                     for (int i = 0; i < segmentCount; i++)
                     {
-                        connectionLine.segments[i].bendPoints = new Vector3[pipesystem.segmentBendPoints];
-
                         connectionLine.segments[i].transform.position = GetPointOnCurve(points, controlPointOffset + i * (pipesystem.segmentLength / distance) + (pipesystem.segmentBendPoints/2) * ((pipesystem.segmentLength / pipesystem.segmentBendPoints) / distance));
 
                         for (int j = 0; j < pipesystem.segmentBendPoints; j++)
                         {
-                            position = GetPointOnCurve(points, controlPointOffset + i * (pipesystem.segmentLength / distance) + j * ((pipesystem.segmentLength / pipesystem.segmentBendPoints) / distance));
+                            position = GetPointOnCurve(points, controlPointOffset + i * (pipesystem.segmentLength / distance) + (j * pipesystem.segmentBendPoints/ (pipesystem.segmentBendPoints-1)) * ((pipesystem.segmentLength / pipesystem.segmentBendPoints) / distance));
+                            connectionLine.segments[i].bendPointsPositions[j] = position;
+                            connectionLine.segments[i].model.transform.GetChild(j).transform.position = connectionLine.segments[i].bendPointsPositions[j];
 
-                            connectionLine.segments[i].bendPoints[j] = position;
-                            connectionLine.segments[i].model.transform.GetChild(j).transform.position = connectionLine.segments[i].bendPoints[j];
+
+                            //rotations
+                            float t = controlPointOffset + i * (pipesystem.segmentLength / distance) + (j * pipesystem.segmentBendPoints / (pipesystem.segmentBendPoints - 1)) * ((pipesystem.segmentLength / pipesystem.segmentBendPoints) / distance);
+                            float zmt = 1 - t;
+                            float zmt2 = zmt * zmt;
+                            float t2 = t * t;
+
+                            connectionLine.segments[i].bendPointRotations[j] = startPoint * (-zmt2) + influencePoint1 * (3 * zmt2 - 2 * zmt) + influencePoint2 * (-3 * t2 + 2 * t) + endPoint * (t2);
+                            connectionLine.segments[i].bendPointRotations[j] = connectionLine.segments[i].bendPointRotations[j].normalized;
+
+                            Quaternion rotation = Quaternion.LookRotation(connectionLine.segments[i].bendPointRotations[j]);
+
+                            connectionLine.segments[i].model.transform.GetChild(j).transform.rotation = rotation;
                         }
                     }
                 }
-
-                //controlPoint.oldPosition = controlPoint.transform.position;
-                //connectionLine.distance = distance;
-
-                //Vector3 newPointPosition = controlPoint.transform.position;
-
-
-                ////Update ControlPointModel
-                //UpdateControlPointModel(controlPoint);
-                
-                //if (connectionLine.startControlPoint == controlPoint)
-                //    UpdateControlPointModel(connectionLine.endControlPoint);
-                //else
-                //    UpdateControlPointModel(connectionLine.startControlPoint);
-                
-
-                //add new segments
-
-
 
                 //adjust interjacent
                 if (pipesystem.interjacentPrefab.Count > 0)
@@ -1473,7 +1506,18 @@ public class PipesystemWindow : EditorWindow {
 
                         //endscheck
                         if (segmentCount > 0)
-                            newInterjacentPosition = (((segmentCount - number) * startPosition) + (number * segmentEndPosition)) / segmentCount;
+                        {
+                            if (!connectionLine.isCurved)
+                                newInterjacentPosition = (((segmentCount - number) * startPosition) + (number * segmentEndPosition)) / segmentCount;
+                            else
+                            {
+                                float percentageValueOnCurve = controlPointOffset + i * (pipesystem.segmentLength / distance);
+
+                                if (percentageValueOnCurve > 1)
+                                    percentageValueOnCurve = 0.9f;
+                                newInterjacentPosition = GetPointOnCurve(points, percentageValueOnCurve);
+                            }
+                        }
                         else
                             newInterjacentPosition = connectionLine.startPosition.transform.position;
 
@@ -1482,7 +1526,27 @@ public class PipesystemWindow : EditorWindow {
                             newInterjacentPosition = connectionLine.endPosition.transform.position;
 
                         connectionLine.interjacents[i].transform.position = newInterjacentPosition;
-                        connectionLine.interjacents[i].transform.rotation = Quaternion.LookRotation(newPointPosition - newInterjacentPosition);
+
+                        if(!connectionLine.isCurved)
+                            connectionLine.interjacents[i].transform.rotation = Quaternion.LookRotation(newPointPosition - newInterjacentPosition);
+                        else
+                        {
+                            Vector3 startPoint = connectionLine.startControlPoint.transform.position;
+                            Vector3 endPoint = connectionLine.endControlPoint.transform.position;
+
+                            Vector3 influencePoint1 = connectionLine.startInfluencePoint.transform.position;
+                            Vector3 influencePoint2 = connectionLine.endInfluencePoint.transform.position;
+
+                            float t = controlPointOffset + i * (pipesystem.segmentLength / distance);
+                            float zmt = 1 - t;
+                            float zmt2 = zmt * zmt;
+                            float t2 = t * t;
+
+                            Vector3 rotation = startPoint * (-zmt2) + influencePoint1 * (3 * zmt2 - 2 * zmt) + influencePoint2 * (-3 * t2 + 2 * t) + endPoint * (t2);
+                            rotation = rotation.normalized;
+                            connectionLine.interjacents[i].transform.rotation = Quaternion.LookRotation(rotation);
+                        }
+
                     }
                 }
             }

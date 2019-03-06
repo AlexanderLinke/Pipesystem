@@ -26,15 +26,12 @@ public class ConnectionLine : MonoBehaviour {
     public GameObject startInfluencePoint;
     public GameObject endInfluencePoint;
 
-    public Vector3[] positionsBendPoints;
-    public Vector3[] rotationsBendPoints;
-
-    void OnDrawGizmos()
-    {
-        if (correspondingPipesystem.isLinked)
-        {
-            Gizmos.color = correspondingPipesystem.gizmoColors[4];
-            Gizmos.DrawLine(startControlPoint.transform.position, endControlPoint.transform.position);
-        }
-    }
+    //void OnDrawGizmos()
+    //{
+    //    if (correspondingPipesystem.isLinked)
+    //    {
+    //        Gizmos.color = correspondingPipesystem.gizmoColors[4];
+    //        Gizmos.DrawLine(startControlPoint.transform.position, endControlPoint.transform.position);
+    //    }
+    //}
 }
